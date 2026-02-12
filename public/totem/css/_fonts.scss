@@ -1,0 +1,27 @@
+@font-face {
+    font-family: 'Futura Extra Black';
+    src: url('../fonts/FuturaBT-ExtraBlackCondensed.woff2') format('woff2'),
+        url('../fonts/FuturaBT-ExtraBlackCondensed.woff') format('woff');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Futura Light';
+    src: url('../fonts/FuturaBT-LightCondensed.woff2') format('woff2'),
+        url('../fonts/FuturaBT-LightCondensed.woff') format('woff');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Futura Bold';
+    src: url('../fonts/FuturaBT-BoldCondensed.woff2') format('woff2'),
+        url('../fonts/FuturaBT-BoldCondensed.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+

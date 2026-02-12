@@ -1,0 +1,559 @@
+/* 1. Use a more-intuitive box-sizing model */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* 2. Remove default margin */
+* {
+  margin: 0;
+}
+
+/* 3. Enable keyword animations */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    interpolate-size: allow-keywords;
+  }
+}
+body {
+  /* 4. Add accessible line-height */
+  line-height: 1.5;
+  /* 5. Improve text rendering */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 6. Improve media defaults */
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* 7. Inherit fonts for form controls */
+input, button, textarea, select {
+  font: inherit;
+}
+
+/* 8. Avoid text overflows */
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+/* 9. Improve line wrapping */
+p {
+  text-wrap: pretty;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+/*
+  10. Create a root stacking context
+*/
+#root, #__next {
+  isolation: isolate;
+}
+
+@font-face {
+  font-family: "Futura Extra Black";
+  src: url("../fonts/FuturaBT-ExtraBlackCondensed.woff2") format("woff2"), url("../fonts/FuturaBT-ExtraBlackCondensed.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Futura Light";
+  src: url("../fonts/FuturaBT-LightCondensed.woff2") format("woff2"), url("../fonts/FuturaBT-LightCondensed.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Futura Bold";
+  src: url("../fonts/FuturaBT-BoldCondensed.woff2") format("woff2"), url("../fonts/FuturaBT-BoldCondensed.woff") format("woff");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+button {
+  background: #F9EC00;
+  font-family: inherit;
+  padding: 0.6em 1.3em;
+  font-family: "Futura Extra Black";
+  font-size: 55px;
+  border: 3px solid black;
+  border-radius: 0.4em;
+  box-shadow: 0.1em 0.1em;
+  width: 100%;
+  cursor: pointer;
+}
+
+button:hover {
+  transform: translate(-0.05em, -0.05em);
+  box-shadow: 0.15em 0.15em;
+}
+
+button:active {
+  transform: translate(0.05em, 0.05em);
+  box-shadow: 0.05em 0.05em;
+}
+
+.botones-verticales {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  padding-top: 0;
+}
+
+.modal-externo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(32, 32, 32, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-externo.oculto {
+  display: none;
+}
+
+.modal-contenido {
+  background: #F9EC00;
+  color: black;
+  font-family: "Futura Extra Black";
+  font-size: 48px;
+  padding: 60px;
+  border-radius: 20px;
+  text-align: center;
+  max-width: 800px;
+  width: 90%;
+  box-shadow: 0.3em 0.3em black;
+}
+
+.modal-contenido button {
+  margin-top: 40px;
+  padding: 20px 40px;
+  font-size: 48px;
+  background: black;
+  color: #F9EC00;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.mensaje-alerta {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #F9EC00;
+  color: black;
+  font-family: "Futura Extra Black";
+  font-size: 48px;
+  padding: 30px 50px;
+  border-radius: 16px;
+  border: 3px solid black;
+  box-shadow: 0.3em 0.3em black;
+  z-index: 9999;
+  text-align: center;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.mensaje-alerta.oculto {
+  opacity: 0;
+  pointer-events: none;
+}
+
+
+.botones-verticales a {
+  width: 100%;
+}
+
+.botones-verticales button {
+  width: 100%;
+  padding: 12px;
+}
+
+.loader-inline {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  position: absolute;
+  right: 10px;
+  top: 38px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.form-field {
+  position: relative;
+}
+
+.oculto {
+  visibility: hidden;
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.teclado-numerico {
+  width: 100%;
+  max-width: 760px;
+  padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.teclado-numerico .linea1, .teclado-numerico .linea2, .teclado-numerico .linea3, .teclado-numerico .linea4 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.teclado-numerico .linea1 .tecla, .teclado-numerico .linea2 .tecla, .teclado-numerico .linea3 .tecla, .teclado-numerico .linea4 .tecla {
+  background-color: #E0E7EC;
+  color: #333;
+  border-radius: 8px;
+  font-size: 64px;
+  font-family: "Futura Extra Black";
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 135px;
+}
+.teclado-numerico .linea1 .tecla:hover, .teclado-numerico .linea1 .tecla:active, .teclado-numerico .linea2 .tecla:hover, .teclado-numerico .linea2 .tecla:active, .teclado-numerico .linea3 .tecla:hover, .teclado-numerico .linea3 .tecla:active, .teclado-numerico .linea4 .tecla:hover, .teclado-numerico .linea4 .tecla:active {
+  background-color: #F9EC00;
+}
+.teclado-numerico .linea5 .tecla {
+  background-color: #E0E7EC;
+  color: #333;
+  border-radius: 8px;
+}
+.teclado-numerico .borrar svg {
+  max-width: 120px;
+}
+
+.teclado-regular {
+  position: absolute;
+  top: 730px;
+  width: 100%;
+  max-width: 1000px;
+  padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.teclado-regular .linea1, .teclado-regular .linea2, .teclado-regular .linea3, .teclado-regular .numeros {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.teclado-regular .linea1 .tecla,
+.teclado-regular .linea2 .tecla,
+.teclado-regular .linea3 .tecla,
+.teclado-regular .numeros .tecla {
+  background-color: #E0E7EC;
+  color: #333;
+  border-radius: 8px;
+  font-size: 36px; /* antes 48px */
+  font-family: "Futura Extra Black";
+  text-transform: uppercase;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px; /* antes 24px */
+}
+
+.teclado-regular .linea1 .tecla:hover, .teclado-regular .linea1 .tecla:active, .teclado-regular .linea2 .tecla:hover, .teclado-regular .linea2 .tecla:active, .teclado-regular .linea3 .tecla:hover, .teclado-regular .linea3 .tecla:active, .teclado-regular .numeros .tecla:hover, .teclado-regular .numeros .tecla:active {
+  background-color: #F9EC00;
+}
+.teclado-regular .linea1 .tecla svg, .teclado-regular .linea2 .tecla svg, .teclado-regular .linea3 .tecla svg, .teclado-regular .numeros .tecla svg {
+  min-width: 50px;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(32, 32, 32, 0.9);
+}
+
+body {
+  background: url(../images/bgv2.png) no-repeat center center fixed;
+  background-size: cover;
+}
+
+/*body.gracias {
+  background: url(../images/gracias.png) no-repeat center center;
+  background-size: cover;
+}*/
+
+/*body {
+  background: #0b1b5d !important;
+  background-image: none !important;
+}*/
+
+body.gracias {
+  background-color: #0b1b5d;
+}
+
+body.gracias .wrapper {
+  padding-top: 310px;
+}
+body.gracias .mensaje {
+  font-size: 96px;
+}
+
+.wrapper {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 50px;
+  text-decoration: none;
+}
+.wrapper:visited {
+  color: white;
+}
+.wrapper.loader {
+  justify-content: center;
+  padding-top: 0;
+  margin-top: -100px;
+}
+
+.mensaje {
+  font-family: "Futura Extra Black";
+  font-size: 70px;
+  color: white;
+  text-align: center;
+  text-shadow: 0px 442px 124px rgba(0, 0, 0, 0.01), 0px 283px 113px rgba(0, 0, 0, 0.05), 0px 159px 96px rgba(0, 0, 0, 0.16), 0px 71px 71px rgba(0, 0, 0, 0.27), 0px 18px 39px rgba(0, 0, 0, 0.31);
+}
+
+.titulo {
+  font-family: "Futura Light";
+  font-size: 70px;
+  color: white;
+  text-align: left;
+  text-shadow: 0px 442px 124px rgba(0, 0, 0, 0.01), 0px 283px 113px rgba(0, 0, 0, 0.05), 0px 159px 96px rgba(0, 0, 0, 0.16), 0px 71px 71px rgba(0, 0, 0, 0.27), 0px 18px 39px rgba(0, 0, 0, 0.31);
+  text-transform: uppercase;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.carousel {
+  padding-top: 100px;
+}
+
+.datos-visita {
+  width: 100%;
+  max-width: 760px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding-top: 32px;
+}
+.datos-visita .dato--titulo {
+  color: #F9EC00;
+  font-size: 48px;
+  font-family: "Futura Light";
+  line-height: 1;
+}
+.datos-visita .dato--dato {
+  font-size: 72px;
+  font-family: "Futura Extra Black";
+}
+
+.acciones {
+  width: 100%;
+  max-width: 760px;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%);
+  bottom: 300px;
+}
+
+.formulario {
+  width: 100%;
+  max-width: 760px;
+  padding-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.formulario label {
+  color: #F9EC00;
+  font-family: "Futura Bold";
+  font-size: 40px;
+  padding-bottom: 12px;
+}
+.formulario label span {
+  font-size: 24px;
+  color: white;
+}
+.formulario input {
+  width: 100%;
+  border-radius: 16px;
+  font-family: "Futura Extra Black";
+  font-size: 40px;
+  padding: 16px 32px;
+  color: #333;
+}
+.formulario input::-moz-placeholder {
+  font-family: "Futura Light";
+  opacity: 0.75;
+}
+.formulario input::placeholder {
+  font-family: "Futura Light";
+  opacity: 0.75;
+}
+
+.metodos-de-pago {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 64px 0;
+}
+.metodos-de-pago .metodo {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background-color: rgba(0, 0, 0, 0.45);
+}
+.metodos-de-pago .metodo .contenido {
+  display: flex;
+  margin: 0 auto;
+  width: 760px;
+  align-items: center;
+  gap: 56px;
+  padding: 40px 0;
+  text-decoration: none;
+}
+.metodos-de-pago .metodo .label {
+  font-size: 72px;
+  line-height: 1;
+  color: white;
+  font-family: "Futura Extra Black";
+}
+
+.sub-titulo {
+  font-size: 72px;
+  font-family: "Futura Extra Black";
+  color: white;
+  padding: 64px 0;
+  width: 100%;
+  max-width: 760px;
+}
+
+.ilustracion {
+  animation: pulso 2s infinite;
+}
+
+@keyframes pulso {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.95);
+  }
+}
+.ilustracion-qr {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.codigo {
+  width: 35%;
+  max-width: 760px;
+}
+
+.splide__slide img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+
+.cube {
+  height: 400px;
+  width: 400px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.cube_item {
+  height: 200px;
+  width: 200px;
+  border-radius: 30px;
+  transition: all 0.2s ease-in;
+}
+
+.cube_x {
+  background-color: #F9EC00;
+  animation: animateLoaders 1s infinite;
+}
+
+.cube_y {
+  background-color: #62AC46;
+  animation: animateLoaders 1s 0.5s infinite;
+}
+
+@keyframes animateLoaders {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(0.8);
+  }
+}
+
+.logo-dharma {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  max-width: 200px;
+}
+
+.logo-paseo {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 220px;
+}
+.logo-paseo img {
+  width: 100%;
+  height: auto;
+  filter: brightness(0) invert(1);
+}
+
+/*# sourceMappingURL=estilos.css.map */

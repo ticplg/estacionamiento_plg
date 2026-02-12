@@ -1,0 +1,257 @@
+
+@import "reset";
+@import "fonts";
+@import "botones";
+@import "teclado";
+
+$sombra: 0px 442px 124px rgba(0, 0, 0, 0.01), 0px 283px 113px rgba(0, 0, 0, 0.05), 0px 159px 96px rgba(0, 0, 0, 0.16), 0px 71px 71px rgba(0, 0, 0, 0.27), 0px 18px 39px rgba(0, 0, 0, 0.31);
+$accent: #F9EC00;
+$verde: #62AC46;
+
+
+
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(#202020, .9);
+}
+
+body {
+    background: url(../images/bgv2.png);
+    background-attachment: fixed;
+    &.gracias {
+      background: url(../images/gracias.png);
+      .wrapper {
+        padding-top: 310px;
+      }
+      .mensaje {
+        font-size: 96px;
+      }
+    }
+}
+
+
+.wrapper {
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 140px;
+    text-decoration: none;
+    &:visited {
+      color: white;
+    }
+    &.loader {
+      justify-content: center;
+      padding-top: 0;
+      margin-top: -100px;
+    }
+}
+
+
+.mensaje {
+  font-family: "Futura Extra Black";
+  font-size: 70px;
+  color: white;;
+  text-align: center;
+  text-shadow: $sombra;
+}
+
+.titulo {
+  font-family: "Futura Light";
+  font-size: 70px;
+  color: white;;
+  text-align: left;
+  text-shadow: $sombra;
+  text-transform: uppercase;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.carousel {
+  padding-top: 100px;
+}
+
+.datos-visita {
+  width: 100%;
+  max-width: 760px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding-top: 32px;
+  .dato--titulo {
+    color: $accent;
+    font-size: 48px;
+    font-family: 'Futura Light';
+    line-height: 1;
+  }
+  .dato--dato {
+    font-size: 72px;
+    font-family: 'Futura Extra Black';
+  }
+}
+
+.acciones {
+  width: 100%;
+  max-width: 760px;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%);
+  bottom: 300px;
+}
+
+
+.formulario {
+  width: 100%;
+  max-width: 760px;
+  padding-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  label {
+    color: $accent;
+    font-family: 'Futura Bold';
+    font-size: 40px;
+    padding-bottom: 12px;
+    span {
+      font-size: 24px;
+      color: white;
+    }
+  }
+  input {
+    width: 100%;
+    border-radius: 16px;
+    font-family: 'Futura Extra Black';
+    font-size: 40px;
+    padding: 16px 32px;
+    color: #333;
+    &::placeholder {
+      font-family: 'Futura Light';
+      opacity: .75;
+    }
+  }
+}
+
+.metodos-de-pago {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 64px 0;
+  .metodo {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background-color: rgba(black, .45);
+    .contenido {
+      display: flex;
+      margin: 0 auto;
+      width: 760px;
+      align-items: center;
+      gap: 56px;
+      padding: 40px 0;
+      text-decoration: none;
+    }
+    .label {
+      font-size: 72px;
+      line-height: 1;
+      color: white;
+      font-family: 'Futura Extra Black';
+    }
+  }
+}
+
+.sub-titulo {
+  font-size: 72px;
+  font-family: "Futura Extra Black";
+  color: white;
+  padding: 64px 0;
+  width: 100%;
+  max-width: 760px;
+}
+
+
+.ilustracion {
+  animation: pulso 2s infinite;
+}
+
+@keyframes pulso {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.95);
+  }
+}
+
+.ilustracion-qr {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+
+.codigo {
+  width: 100%;
+  max-width: 760px;
+}
+
+
+.splide__slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// animacion loading
+
+.cube {
+  height: 400px;
+  width: 400px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.cube_item {
+  height: 200px;
+  width: 200px;
+  border-radius: 30px;
+  transition: all 0.2s ease-in;
+}
+
+.cube_x {
+  background-color: $accent;
+  animation: animateLoaders 1s infinite;
+}
+
+.cube_y {
+  background-color: $verde;
+  animation: animateLoaders 1s 0.5s infinite;
+}
+
+@keyframes animateLoaders {
+  0% {
+    transform: scale(0.8);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(0.8);
+  }
+}
+
+

@@ -1,0 +1,17 @@
+# MURO DE SEGURIDAD - PASEO LA GALERIA
+# Desactivar listado de carpetas
+Options -Indexes
+
+# Bloquear acceso a carpetas críticas
+RedirectMatch 403 ^.*/(config|routes|bootstrap|tests|app|storage|vendor)/.*$
+
+# Bloquear ejecución directa de PHP
+<FilesMatch "\.php$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# EXCEPCIÓN: Permitir el funcionamiento del sistema
+<Files "index.php">
+    Allow from all
+</Files>
