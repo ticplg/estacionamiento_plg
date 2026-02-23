@@ -100,14 +100,12 @@ class ApiEstacionamiento extends Controller
             $identificador = ctype_digit($input) ? $input : null;
         }
         
-        //return $identificador;
-        $pago = RegistroEstacionamientoPago::where('identificador', $identificador)
-        ->where('created_at', '<=', Carbon::now()->subMinutes(30))
-        ->first();
+        $enGracia = RegistroEstacionamientoPago::where('identificador', $identificador)
+            ->where('created_at', '>=', Carbon::now()->subMinutes(30))
+            ->latest('created_at')
+            ->first();
 
-
-        if($pago)
-        {
+        if ($enGracia) {
             return response()->json([
                 'status' => 200,
                 'pagado' => true,
