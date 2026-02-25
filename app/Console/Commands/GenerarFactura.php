@@ -623,6 +623,12 @@ class GenerarFactura extends Command
 
             $headers = ['Content-Type' => 'application/json'];
 
+            if ($venta->tipo_tarjeta == "credit" || $venta->tipo_tarjeta == "TC" || $venta->tipo_tarjeta == "CARD") {
+                $tipoDoc = "CARD";
+            } else {
+                $tipoDoc = "DEBIT";
+            }
+
             $body = [
                 "Empresa" => "DAYL",
                 "Serie" => $serie[0].'-'.$serie[1],
@@ -634,6 +640,8 @@ class GenerarFactura extends Command
                 "Vendedor" => $venta->punto_venta != 'APP' ? ucfirst(strtolower($venta->punto_venta)) : $venta->punto_venta,
                 "Total" => $venta->monto_factura,
                 "Identificador" => (mb_strlen($venta->identificador) > 15) ?  $venta->identificador : null,
+                "TipoDoc" => $tipoDoc, /// "DEBIT"
+                "Boleta" => ltrim($venta->ticket_number, '0'),
                 "Items" => [
                     [
                         "SKU" => "PARK",
