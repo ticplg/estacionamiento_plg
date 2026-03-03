@@ -126,14 +126,27 @@ class ApiEstacionamiento extends Controller
             $descuento_zf = Configuracion::where('nombre_parametro', 'validar_zona_fit')->first();
             if($descuento_zf->valor == 'SI')
             {
-                $resultado_zona_fit = $this->verificar_cliente_zona_fit($request->cedula_usuario);
+                /*$resultado_zona_fit = $this->verificar_cliente_zona_fit($request->cedula_usuario);
                 //\Log::info($resultado_zona_fit);
                 //\Log::info($resultado_zona_fit);
                 //if($resultado_zona_fit["body"]['esta_al_dia'] == 1)
                 if($resultado_zona_fit["body"]['esta_al_dia'] == 1 && isset($resultado_zona_fit['body']['planActivoCliente']))
                 {
                     $this->aplicar_descuento_ticket($identificador, 35, $resultado_zona_fit, $version, $so);
-                }
+                }*/
+                $zf = $this->verificar_cliente_zona_fit($request->cedula_usuario);
+
+                if (
+                    ($zf['ok'] ?? false) === true &&
+                    ($zf['body']['esta_al_dia'] ?? 0) == 1 &&
+                    isset($zf['body']['planActivoCliente'])
+                ) {
+                    try {
+                        $this->aplicar_descuento_ticket($identificador, 35, $zf, $version, $so);
+                    } catch (\Throwable $e) {
+                        \Log::warning('Fallo aplicar_descuento_ticket (no bloqueante)', ['error' => $e->getMessage()]);
+                    }
+                }                    
             }
 	    }
 
@@ -370,7 +383,7 @@ class ApiEstacionamiento extends Controller
         return "$hours:$minutes:$seconds";
     }
 
-    public function verificar_cliente_zona_fit($documento)
+    /*public function verificar_cliente_zona_fit($documento)
     {
         $url = "https://gestion.zonafit.com.py/api/acceso/verificar_acceso";
         $client = new Client();
@@ -402,6 +415,79 @@ class ApiEstacionamiento extends Controller
             return [
                 'status' => 'error',
                 'message' => $e->getMessage(),
+            ];
+        }
+    }*/
+
+    public function verificar_cliente_zona_fit($documento)
+    {
+        $url = "https://gestion.zonafit.com.py/api/acceso/verificar_acceso";
+
+        $client = new Client([
+            'timeout'         => 3, // total
+            'connect_timeout' => 2, // conexión
+        ]);
+
+        try {
+            $response = $client->get($url, [
+                'query' => ['cedula' => $documento],
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+                'http_errors' => false, // ✅ clave: no excepción por 4xx/5xx
+            ]);
+
+            $status = $response->getStatusCode();
+            $raw    = (string) $response->getBody();
+
+            $json = json_decode($raw, true);
+
+            // si vino HTML (502) o no es JSON válido, lo tratamos como fallo controlado
+            if (!is_array($json)) {
+                Log::warning('ZonaFit respuesta no JSON', [
+                    'status' => $status,
+                    'cedula' => $documento,
+                    'body'   => mb_substr($raw, 0, 300),
+                ]);
+
+                return [
+                    'ok'     => false,
+                    'status' => $status,
+                    'body'   => null,
+                    'error'  => 'Respuesta no válida de ZonaFit',
+                ];
+            }
+
+            // si no es 200, igual devolvemos body pero marcamos ok=false
+            return [
+                'ok'     => ($status === 200),
+                'status' => $status,
+                'body'   => $json,
+                'error'  => ($status === 200) ? null : 'ZonaFit devolvió error HTTP',
+            ];
+        } catch (RequestException $e) {
+            Log::warning('ZonaFit exception', [
+                'cedula' => $documento,
+                'error'  => $e->getMessage(),
+            ]);
+
+            return [
+                'ok'     => false,
+                'status' => null,
+                'body'   => null,
+                'error'  => $e->getMessage(),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('ZonaFit throwable', [
+                'cedula' => $documento,
+                'error'  => $e->getMessage(),
+            ]);
+
+            return [
+                'ok'     => false,
+                'status' => null,
+                'body'   => null,
+                'error'  => $e->getMessage(),
             ];
         }
     }
