@@ -335,7 +335,7 @@ class ApiEstacionamiento extends Controller
                     return response()->json([
                         'status' => 'error',
                         'message' => $e->getMessage(),
-                    ], 500);
+                    ], 200);
                 }
             }
         }
@@ -1257,64 +1257,84 @@ class ApiEstacionamiento extends Controller
 
     public function generarQRExpress(Request $request)
     {
+        //VALIDACIÓN (identificador obligatorio)
+        $validated = $request->validate([
+            'identificador'  => ['required','string','max:100'],
+            'monto'          => ['required','numeric','min:1'],
+            'user_id'        => ['required','integer'],
+            'nombre_cliente' => ['nullable','string','max:255'],
+            'ruc'            => ['nullable','string','max:50'],
+        ], [
+            'identificador.required' => 'El identificador es obligatorio.',
+            'monto.required'         => 'El monto es obligatorio.',
+            'monto.numeric'          => 'El monto debe ser numérico.',
+            'monto.min'              => 'El monto debe ser mayor a 0.',
+            'user_id.required'       => 'El user_id es obligatorio.',
+        ]);
+
         // Inicializar Guzzle Client
         $client = new Client();
-        
-        $publica = "apps/TQPJv56thLhDTy0Hgcylc0vsoDyT3m5w";
-        $privada =  'cRVRhj,UU$Q2ue48)QkHEAm0sn0j,P2adX)czefj';
 
-        //return 'Basic '.base64_encode($publica.':'.$privada);
+        $publica = "apps/TQPJv56thLhDTy0Hgcylc0vsoDyT3m5w";
+        $privada = 'cRVRhj,UU$Q2ue48)QkHEAm0sn0j,P2adX)czefj';
+
         $headers = [
             'Authorization' => 'Basic '.base64_encode($publica.':'.$privada),
-            'Content-Type' => 'application/json',
+            'Content-Type'  => 'application/json',
         ];
-    
-        // Definir el cuerpo de la solicitud en formato JSON
+
+        // Cuerpo de la solicitud
         $body = [
-            'amount' => $request->monto,
-            'description' => 'Pago Estacionamiento'
+            'amount'      => $validated['monto'],
+            'description' => 'Pago Estacionamiento',
         ];
-    
-        // Enviar la solicitud HTTP POST con Guzzle
+
         try {
+            $response = $client->post(
+                'https://comercios.bancard.com.py/external-commerce/api/0.1/commerces/807386/branches/32/selling/generate-qr-express',
+                [
+                    'headers' => $headers,
+                    'json'    => $body,
+                ]
+            );
 
-            $response = $client->post('https://comercios.bancard.com.py/external-commerce/api/0.1/commerces/807386/branches/32/selling/generate-qr-express', [
-                'headers' => $headers,
-                'json' => $body, // Usar la opción 'json' para que Guzzle codifique automáticamente el array a JSON
-            ]);
-
-            /*$response = $client->post('https://desa.infonet.com.py:8035/external-commerce/api/0.1/commerces/807386/branches/32/selling/generate-qr-express', [
-                'headers' => $headers,
-                'json' => $body, // Usar la opción 'json' para que Guzzle codifique automáticamente el array a JSON
-            ]);*/
-    
-            // Retornar el cuerpo de la respuesta
             $data = json_decode($response->getBody());
 
-
-
             $result = [
-                'hook_alias'    => $data->qr_express->hook_alias,
-                'url'           => $data->qr_express->url,
+                'hook_alias' => $data->qr_express->hook_alias ?? null,
+                'url'        => $data->qr_express->url ?? null,
             ];
 
-            $pago = new QRTransaction;
-            $pago->hook_alias = $data->qr_express->hook_alias;
-            $pago->qr_url = $data->qr_express->url;
-            $pago->usuario_id = $request->user_id;
-            $pago->identificador = $request->identificador;
-            $pago->nombre_cliente = $request->nombre_cliente;
-            $pago->ruc_cliente = $request->ruc;
+            $pago = new QRTransaction();
+            $pago->hook_alias      = $result['hook_alias'];
+            $pago->qr_url          = $result['url'];
+            $pago->usuario_id      = $validated['user_id'];
+            $pago->identificador   = $validated['identificador'];
+            $pago->nombre_cliente  = $validated['nombre_cliente'] ?? null;
+            $pago->ruc_cliente     = $validated['ruc'] ?? null;
             $pago->save();
 
             return response()->json([
-                'status' => $data->status,
-                'data' => $result,
+                'status' => $data->status ?? 'unknown',
+                'data'   => $result,
             ]);
 
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            // Si Bancard devolvió respuesta con error, mostramos ese body si existe
+            $resp = $e->getResponse();
+            $body = $resp ? (string) $resp->getBody() : null;
+
+            return response()->json([
+                'error'   => 'Error en la solicitud a Bancard',
+                'message' => $e->getMessage(),
+                'body'    => $body,
+            ], 500);
+
         } catch (\Exception $e) {
-            // Manejo de errores
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error'   => 'Error interno',
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 
