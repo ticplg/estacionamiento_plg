@@ -444,11 +444,11 @@ class ApiEstacionamiento extends Controller
 
             // si vino HTML (502) o no es JSON válido, lo tratamos como fallo controlado
             if (!is_array($json)) {
-                Log::warning('ZonaFit respuesta no JSON', [
+                /*Log::warning('ZonaFit respuesta no JSON', [
                     'status' => $status,
                     'cedula' => $documento,
                     'body'   => mb_substr($raw, 0, 300),
-                ]);
+                ]);*/
 
                 return [
                     'ok'     => false,
@@ -466,10 +466,10 @@ class ApiEstacionamiento extends Controller
                 'error'  => ($status === 200) ? null : 'ZonaFit devolvió error HTTP',
             ];
         } catch (RequestException $e) {
-            Log::warning('ZonaFit exception', [
+            /*Log::warning('ZonaFit exception', [
                 'cedula' => $documento,
                 'error'  => $e->getMessage(),
-            ]);
+            ]);*/
 
             return [
                 'ok'     => false,
@@ -478,10 +478,10 @@ class ApiEstacionamiento extends Controller
                 'error'  => $e->getMessage(),
             ];
         } catch (\Throwable $e) {
-            Log::warning('ZonaFit throwable', [
+            /*Log::warning('ZonaFit throwable', [
                 'cedula' => $documento,
                 'error'  => $e->getMessage(),
-            ]);
+            ]);*/
 
             return [
                 'ok'     => false,
@@ -2293,7 +2293,7 @@ class ApiEstacionamiento extends Controller
     }
     
     public function exonerar_hotel($identificador)
-    {        
+    {
         $body = '
             <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:msg="http://www.skidata.com/interfaces/parking/ticketManagement/v4/msg">
                 <soapenv:Header/>
