@@ -759,14 +759,22 @@ class ApiEstacionamiento extends Controller
             if($request->ruc == '88888801-5')
             {
                 $factura->documento = '44444401-7';
-            }else
-            {
-                $factura->documento = $request->ruc;
+                $factura->razon_social = 'Cliente Ocasional';
             }
-            
-            $factura->razon_social = $request->nombre_cliente;
+            else
+            {        
+                $cliente = RucActivo::where('ruc', $request->ruc)->first();
+                if(!$cliente)
+                {
+                    $cliente = RucActivo::where('codigo', $request->ruc)->first();
+                }
+
+                $factura->documento = $cliente->ruc;
+                $factura->razon_social = $cliente->nombre;
+            }
+
             $factura->identificador = $request->identificador;
-            
+
             if($request->metodo_pago == 'TARJETA')
             {
                 $factura->user_id = $request->transaccion['usuario_id'];

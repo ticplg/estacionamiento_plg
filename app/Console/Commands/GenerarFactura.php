@@ -82,7 +82,7 @@ class GenerarFactura extends Command
             'envio_facturas',
             'verificar_codigo_descuento',
             'transacciones_tarjeta',
-            'verificar_pagos_qr', // estaba comentado en tu handle original
+            'verificar_pagos_qr',
         ] as $method) {
             try {
                 $this->info(">> Ejecutando {$method}()");
@@ -887,9 +887,9 @@ class GenerarFactura extends Command
         }
 
         $tarjetas = BancardTransaction::where('status', 'Success')
-            ->where('created_at', '>=', '2025-08-01 00:00:00')
-            ->where('factura_id', 0)
-            ->get();
+        ->where('created_at', '>=', '2025-08-01 00:00:00')
+        ->where('factura_id', 0)
+        ->get();
         $this->info('Evaluando tarjetas sin factura desde 2025-08-01: '.$tarjetas->count());
 
         foreach ($tarjetas as $tarjeta) {
@@ -907,20 +907,29 @@ class GenerarFactura extends Command
                     $documento = $historico->documento;
                 }
 
-                $factura = new HistorialFactura;
-                $factura->identificador = $tarjeta->id . 100;
-                $factura->monto_factura = $tarjeta->amount;
-                $factura->fecha_factura = date('Y-m-d');
-                $factura->documento = $documento;
-                $factura->razon_social = $razon_social;
-                $factura->user_id = $tarjeta->usuario_id;
-                $factura->transaccion_tarjeta_id =  $tarjeta->id;
-                $factura->authorization_number = json_decode($tarjeta->response_data)->confirmation->authorization_number;
-                $factura->ticket_number = json_decode($tarjeta->response_data)->confirmation->ticket_number;
-               $factura->save();
+                $maxIdentificador = DB::table('registro_estacionamientos as a')
+                ->whereDate('a.fecha_lectura', date('Y-m-d'))
+                ->where('a.user_app_id', $tarjeta->usuario_id)
+                ->where('a.price', $tarjeta->amount)
+                ->max('a.identificador');
+                if($maxIdentificador != null)
+                {
+                    $factura = new HistorialFactura;
+                    $factura->identificador = $maxIdentificador;
+                    $factura->monto_factura = $tarjeta->amount;
+                    $factura->fecha_factura = date('Y-m-d');
+                    $factura->documento = $documento;
+                    $factura->razon_social = $razon_social;
+                    $factura->user_id = $tarjeta->usuario_id;
+                    $factura->transaccion_tarjeta_id =  $tarjeta->id;
+                    $factura->authorization_number = json_decode($tarjeta->response_data)->confirmation->authorization_number;
+                    $factura->ticket_number = json_decode($tarjeta->response_data)->confirmation->ticket_number;
+                    $factura->save();
 
-               $tarjeta->factura_id = $factura->id;
-               $tarjeta->save();
+                    $tarjeta->factura_id = $factura->id;
+                    $tarjeta->save();
+                }
+
 
                 $this->line(" -> Generada factura por tarjeta id={$factura->id}");
 
@@ -952,7 +961,7 @@ class GenerarFactura extends Command
                 $documento = "44444401-7";
 
                 $factura = new HistorialFactura;
-                $factura->identificador = $tarjeta->id . 100;
+                $factura->identificador = $tarjeta->identificador;
                 $factura->monto_factura = $tarjeta->monto;
                 $factura->fecha_factura = date('Y-m-d');
                 $factura->documento = $documento;
@@ -974,5 +983,3 @@ class GenerarFactura extends Command
         }
     }
 }
-
-

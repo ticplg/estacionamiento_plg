@@ -381,12 +381,12 @@ class ParkingTottem extends Controller
         $email = $request->email;
         $identificador = $request->identificador;
         $monto =  $request->monto;
-        $pago = $this->generarQRExpress($request->monto);
+        $pago = $this->generarQRExpress($request->monto, $identificador);
         //$pago = QRTransaction::find(84);
         return view('totems.pago_qr', compact('pago', 'email', 'identificador', 'monto'));
     }
 
-    public function generarQRExpress($monto)
+    public function generarQRExpress($monto, $identificador)
     {
         // Inicializar Guzzle Client
         $client = new Client();
@@ -430,6 +430,7 @@ class ParkingTottem extends Controller
             $pago = new QRTransaction;
             $pago->hook_alias = $data->qr_express->hook_alias;
             $pago->qr_url = $data->qr_express->url;
+            $pago->identificador = $data->identificador;
             $pago->usuario_id = 0;
             $pago->save();
 
@@ -523,6 +524,7 @@ class ParkingTottem extends Controller
                 $transaccion->nombre_cliente      = $json['nombreCliente']      ?? null;
                 $transaccion->nombre_tarjeta      = $json['nombreTarjeta']      ?? null;
                 $transaccion->issuerId            = $json['issuerId']           ?? null;
+                $transaccion->identificador       = $identificador;
                 $transaccion->monto               = $valor;
                 
                 $transaccion->save();
