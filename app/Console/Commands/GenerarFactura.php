@@ -908,7 +908,7 @@ class GenerarFactura extends Command
                 }
 
                 $maxIdentificador = DB::table('registro_estacionamientos as a')
-                ->whereDate('a.fecha_lectura', date('Y-m-d'))
+                ->whereDate('a.fecha_lectura', date('Y-m-d', strtotime($tarjeta->created_at)))
                 ->where('a.user_app_id', $tarjeta->usuario_id)
                 ->where('a.price', $tarjeta->amount)
                 ->max('a.identificador');
