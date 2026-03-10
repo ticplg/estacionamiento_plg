@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use DB;
 use PDF;
 use Storage;
 use Carbon\Carbon;
