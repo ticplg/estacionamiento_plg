@@ -430,7 +430,7 @@ class ParkingTottem extends Controller
             $pago = new QRTransaction;
             $pago->hook_alias = $data->qr_express->hook_alias;
             $pago->qr_url = $data->qr_express->url;
-            $pago->identificador = $data->identificador;
+            $pago->identificador = $identificador;
             $pago->usuario_id = 0;
             $pago->save();
 
