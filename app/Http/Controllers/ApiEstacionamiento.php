@@ -23,6 +23,7 @@ use App\Models\RegistroDescuentoAplicado;
 use App\Models\RegistroEstacionamientoPago;
 use App\Models\TicketEventoDescuentoEspecial;
 use App\Models\RegistroDescuentoCine;
+use App\Models\DescuentoProveedor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -1477,6 +1478,7 @@ class ApiEstacionamiento extends Controller
 
         //Log::info('Pago recibido:', $request->all());
 
+
         // Realiza aquí el procesamiento necesario
         // Ejemplo: actualizar el estado de la orden
 
@@ -1696,7 +1698,7 @@ class ApiEstacionamiento extends Controller
         }
     }
 
-    public function verificar_ruc(Request $request)
+    /*public function verificar_ruc(Request $request)
     {
         $cliente = RucActivo::where('ruc', $request->ruc)->first();
 
@@ -1709,7 +1711,67 @@ class ApiEstacionamiento extends Controller
             'status' => 200,
             'data' => $cliente
         ], 200);
+    }*/
+
+    public function verificar_ruc(Request $request)
+    {
+
+        $cliente = RucActivo::where('ruc', $request->ruc)->first();
+
+        if(!$cliente)
+        {
+            $cliente = RucActivo::where('codigo', $request->ruc)->first();
+        }
+
+        if(!$cliente)
+        {
+            $token = $this->getAuthToken()['body']['token'];
+            $client = new Client();
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer '.$token
+            ];
+
+            $ruc = explode('-', $request->ruc)[0];
+
+            $res = $client->get($this->url_mega_print.'/consultaRuc', [
+                'headers' => $headers,
+                'query' => [
+                    'ruc' => $ruc
+                ]
+            ]);
+
+            $datos = json_decode($res->getBody()->getContents());
+
+            $rucConsultado = $datos->rucConsultado ?? null;
+            $codigoEstado = $datos->codigoEstado ?? null;
+            $razonSocial = $datos->razonSocial ?? null;
+            $rucEsFacturadorElectronico = $datos->rucEsFacturadorElectronico ?? null;
+
+            if(isset($rucConsultado))
+            {
+                $rucActivo = new RucActivo;
+                $rucActivo->ruc = $request->ruc;
+                $rucActivo->codigo = $ruc;
+                $rucActivo->nombre = $razonSocial;
+                $rucActivo->tipo = $ruc[1] ?? 0;
+                $rucActivo->identificador = rand (1000000, 9999999);
+                $rucActivo->estado = 'ACTIVO';
+                $rucActivo->save();
+            }
+        }
+
+        $cliente = RucActivo::where('ruc', $request->ruc)->first();
+
+        return response()->json([
+            'status' => 200,
+            'data' => $cliente
+        ], 200);
+
+        
     }
+
+
 
     public function forma_pagos(Request $request)
     {
@@ -1788,6 +1850,41 @@ class ApiEstacionamiento extends Controller
         ], 200);
     }
 
+    public function registrar_ticket_proveedores(Request $request)
+    {
+        $descuento = DescuentoProveedor::where('identificador', $request->identificador)->first();
+
+
+        if(strlen($request->identificador) != 23)
+        {
+            return response()->json([
+                'status' => 500,
+                'data' => $descuento,
+                'message' => "Por favor, vuelva a pasar el código QR por el escáner."
+            ], 500);
+        }
+
+        if(!$descuento)
+        {
+            $descuento = new DescuentoProveedor;
+            $descuento->identificador = $request->identificador;
+            $descuento->nombre = $request->nombre;
+            $descuento->chapa = $request->chapa;
+            $descuento->evento = $request->evento;
+            $descuento->save();
+            
+
+        }
+
+        $this->descuento_parking_proveedores($descuento);
+
+        return response()->json([
+            'status' => 200,
+            'data' => $descuento
+        ], 200);
+
+    }
+
     public function descuento_parking(TicketEventoDescuento $ticket)
     {
 
@@ -1799,6 +1896,57 @@ class ApiEstacionamiento extends Controller
                     <soapenv:Body>
                         <msg:InsertElectronicValidation>
                             <msg:validationId>APT.VAL.1901198.5001</msg:validationId>
+                            <msg:ticketId xsi:type="ns481:GenericIdentification" xmlns:ns481="http://www.skidata.com/contractor/dtaservice/v7/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                                <ns481:Identificator>'.$ticket->identificador.'</ns481:Identificator>
+                                <ns481:Type>PARK</ns481:Type>
+                            </msg:ticketId>
+                            <msg:externalDeviceId>458</msg:externalDeviceId>
+                            <msg:parkingDeviceId>81</msg:parkingDeviceId>
+                        </msg:InsertElectronicValidation>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+                ';
+        
+            $client = new Client();
+        
+            try 
+            {
+                $response = $client->post($this->url, [
+                    'headers' => [
+                        'Content-Type' => 'text/xml; charset=utf-8',
+                        'Authorization' => 'Basic ' . base64_encode($this->usuario . ':'.$this->password),
+                    ],
+                    'body' => $body,
+                ]);
+        
+                $statusCode = $response->getStatusCode();
+        
+                if($statusCode == 200)
+                {
+                    $ticket->fecha_hora_exoneracion = date('Y-m-d H:i:s');
+                    $ticket->save();
+                }
+            } 
+            catch (\Exception $e) 
+            {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                ], 500);
+            }
+    }
+
+    public function descuento_parking_proveedores(DescuentoProveedor $ticket)
+    {
+
+        $now = Carbon::now(new \DateTimeZone('Etc/GMT+3'));
+
+            $body = '
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:msg="http://www.skidata.com/interfaces/parking/ticketManagement/v4/msg">
+                    <soapenv:Header/>
+                    <soapenv:Body>
+                        <msg:InsertElectronicValidation>
+                            <msg:validationId>APT.VAL.1901198.33</msg:validationId>
                             <msg:ticketId xsi:type="ns481:GenericIdentification" xmlns:ns481="http://www.skidata.com/contractor/dtaservice/v7/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                                 <ns481:Identificator>'.$ticket->identificador.'</ns481:Identificator>
                                 <ns481:Type>PARK</ns481:Type>

@@ -37,6 +37,7 @@ class DescuentoCine extends Command
     private $url_mega_print;
     private $accessKey;
     private $secretKey;
+    private $codigo_descuento_cine;
 
     public function __construct()
     {
@@ -56,15 +57,16 @@ class DescuentoCine extends Command
     private function setConfigurations()
     {
         try {
-            $this->usuario          = $this->cfg('usuario', '');
-            $this->password         = $this->cfg('password', '');
-            $this->externalDeviceId = 457;//$this->cfg('externalDeviceId', '456');
-            $this->parkingDeviceId  = 80;//$this->cfg('parkingDeviceId', '82');
-            $this->facilityId       = $this->cfg('facilityId', '');
-            $this->url              = $this->cfg('url', '');
-            $this->url_mega_print   = $this->cfg('url_mega_print', '');
-            $this->accessKey        = $this->cfg('accesskey_mega_print', '');
-            $this->secretKey        = $this->cfg('secretkey_mega_print', '');
+            $this->usuario                      = $this->cfg('usuario', '');
+            $this->password                     = $this->cfg('password', '');
+            $this->externalDeviceId             = 457;//$this->cfg('externalDeviceId', '456');
+            $this->parkingDeviceId              = 80;//$this->cfg('parkingDeviceId', '82');
+            $this->facilityId                   = $this->cfg('facilityId', '');
+            $this->url                          = $this->cfg('url', '');
+            $this->url_mega_print               = $this->cfg('url_mega_print', '');
+            $this->accessKey                    = $this->cfg('accesskey_mega_print', '');
+            $this->secretKey                    = $this->cfg('secretkey_mega_print', '');
+            $this->codigo_descuento_cine        = $this->cfg('codigo_descuento_cine', 35);
 
             $this->info('Configuraciones cargadas.');
         } catch (\Throwable $e) {
@@ -139,9 +141,11 @@ class DescuentoCine extends Command
                 Carbon::today()->endOfDay(),
             ])
             ->get();
+        
         foreach($tickets as $ticket)
         {
-            $ok = $this->aplicar_descuento_ticket($ticket->identificador, 35, $ticket);
+            
+            $ok = $this->aplicar_descuento_ticket($ticket->identificador, $this->codigo_descuento_cine, $ticket);
 
             if($ok)
             {
