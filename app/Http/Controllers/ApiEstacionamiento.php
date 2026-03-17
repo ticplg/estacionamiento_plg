@@ -1974,7 +1974,7 @@ class ApiEstacionamiento extends Controller
         
                 if($statusCode == 200)
                 {
-                    $ticket->fecha_hora_exoneracion = date('Y-m-d H:i:s');
+                    $ticket->fecha_hora_validacion = date('Y-m-d H:i:s');
                     $ticket->save();
                 }
             } 
