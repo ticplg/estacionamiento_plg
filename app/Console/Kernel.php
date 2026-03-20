@@ -28,8 +28,9 @@ class Kernel extends ConsoleKernel
 	    $schedule->command('app:tarifa-unica')
             ->everyMinute()->withoutOverlapping();
 
-	    $schedule->command('app:aplicar-exoneracion-ticket')
-            ->everyTenMinutes()->withoutOverlapping();
+        $schedule->command('app:aplicar-exoneracion-ticket')
+            ->everyFiveMinutes()
+            ->withoutOverlapping();
 
         // Ejecuta `app:sincronizar-dinamic` solo después de `app:generar-factura`
         /*$schedule->command('app:sincronizar-dinamic')

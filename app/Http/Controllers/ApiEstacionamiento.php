@@ -2191,6 +2191,10 @@ class ApiEstacionamiento extends Controller
                 }
 
             }
+            else
+            {
+                $this->descuento_parking($ticket);
+            }
         }
     }
 
