@@ -122,6 +122,7 @@ class GenerarFactura extends Command
             $this->line(" - Set por defecto Cliente Ocasional id={$factura->id}");
         }
 
+
         $factura_enviar = HistorialFactura::whereNull('numero_factura')
             ->orderBy('id', 'asc')
             ->take(50)
@@ -129,7 +130,14 @@ class GenerarFactura extends Command
 
         $this->info('Facturas a enviar (sin número): '.$factura_enviar->count());
 
-        foreach ($factura_enviar as $enviar) {
+        foreach ($factura_enviar as $enviar) 
+        {
+            if($enviar->razon_social == "Cliente Ocasional")
+            {
+                $enviar->documento = '44444401-7';
+                $enviar->save();
+            }
+
             try {
                 $this->line(" -> Generando XML + envío: id={$enviar->id}, monto={$enviar->monto_factura}, cliente={$enviar->razon_social}");
                 $this->generateAndSendXml($enviar->monto_factura, $enviar->razon_social, $enviar->documento, $enviar->id, $enviar->created_at);
