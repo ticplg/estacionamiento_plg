@@ -145,9 +145,16 @@ class AplicarExoneracionTicket extends Command
                 $ticket->save();
                 $this->info("Ticket {$ticket->identificador} exonerado 100%.");
             } else {
-                $this->warn("Exoneración retornó status {$response->getStatusCode()} para ticket {$ticket->identificador}");
+	        $this->warn("Exoneración retornó status {$response->getStatusCode()} para ticket {$ticket->identificador}");
+
+		$ticket->finalizo_descuento = 1;
+                $ticket->save();
             }
-        } catch (\Throwable $e) {
+	} catch (\Throwable $e) {
+
+             $ticket->finalizo_descuento = 1;
+             $ticket->save();
+
             \Log::info($e);
             $this->warn("No se pudo exonerar ticket {$ticket->identificador}. Continúo.");
         }
@@ -206,9 +213,16 @@ class AplicarExoneracionTicket extends Command
                     $ticket->save();
                     $this->info("Especial exonerado {$ticket->identificador}");
                 } else {
-                    $this->warn("Status {$response->getStatusCode()} en especial para {$ticket->identificador}");
+			$this->warn("Status {$response->getStatusCode()} en especial para {$ticket->identificador}");
+
+			$ticket->finalizo_descuento = 1;
+                        $ticket->save();
                 }
-            } catch (\Throwable $e) {
+	    } catch (\Throwable $e) {
+
+                $ticket->finalizo_descuento = 1;
+                $ticket->save();
+
                 \Log::info($e);
                 $this->warn("No se pudo exonerar especial {$ticket->identificador}. Continúo.");
             }

@@ -26,6 +26,7 @@ use App\Exports\ReporteTicketsHotelExport;
 use App\Exports\ReporteTicketsEventoDescuentoExport;
 use App\Exports\TransaccionesPendientesExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ReporteTablaCompletaExport;
 
 class ReporteController extends Controller
 {
@@ -263,6 +264,55 @@ class ReporteController extends Controller
             ->get();
 
             return Excel::download(new ReporteTicketsPagadosExport($registros), 'reporte_tickets_pagados.xlsx');
+        }
+                elseif($reporte_estacionamiento->tipo_reporte == 'reporte_descuento_proveedores')
+        {
+            $columnas = [
+                'id',
+                'identificador',
+                'nombre',
+                'chapa',
+                'evento',
+                'fecha_hora_validacion',
+                'created_at',
+                'updated_at',
+            ];
+
+            $registros = DB::table('descuento_proveedors')
+                ->select($columnas)
+                ->where('fecha_hora_validacion', '>=', $reporte_estacionamiento->fecha_desde . ' 00:00:00')
+                ->where('fecha_hora_validacion', '<=', $reporte_estacionamiento->fecha_hasta . ' 23:59:59')
+                ->orderBy('fecha_hora_validacion', 'asc')
+                ->get();
+
+            return Excel::download(
+                new ReporteTablaCompletaExport($registros, $columnas),
+                'reporte_descuento_proveedores.xlsx'
+            );
+        }
+        elseif($reporte_estacionamiento->tipo_reporte == 'reporte_descuento_cines')
+        {
+            $columnas = [
+                'id',
+                'identificador',
+                'fecha_registro',
+                'fecha_exoneracion',
+                'response_status',
+                'created_at',
+                'updated_at',
+            ];
+
+            $registros = DB::table('registro_descuento_cines')
+                ->select($columnas)
+                ->whereDate('fecha_registro', '>=', $reporte_estacionamiento->fecha_desde)
+                ->whereDate('fecha_registro', '<=', $reporte_estacionamiento->fecha_hasta)
+                ->orderBy('fecha_registro', 'asc')
+                ->get();
+
+            return Excel::download(
+                new ReporteTablaCompletaExport($registros, $columnas),
+                'reporte_descuento_cines.xlsx'
+            );
         }
         elseif($reporte_estacionamiento->tipo_reporte == 'reporte_ticket_hotel')
         {

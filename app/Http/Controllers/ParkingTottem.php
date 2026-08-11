@@ -71,8 +71,8 @@ class ParkingTottem extends Controller
         }
         
         //return $identificador;
-        /*$pago = RegistroEstacionamientoPago::where('identificador', $identificador)
-        ->where('created_at', '<=', Carbon::now()->subMinutes(30))
+        $pago = RegistroEstacionamientoPago::where('identificador', $identificador)
+        ->where('created_at', '>=', Carbon::now()->subMinutes(30))
         ->first();
 
 
@@ -83,7 +83,7 @@ class ParkingTottem extends Controller
                 'pagado' => true,
                 'data' => [],
             ]);
-        }*/
+        }
 
         $url = $this->url;
 

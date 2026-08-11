@@ -19,8 +19,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('app:cruce-venta-pagos')
             ->everyTenMinutes()->withoutOverlapping();
 
-	    $schedule->command('app:ejecutar-validacion-salida')
-            ->everyMinute()->withoutOverlapping();
+	    /*$schedule->command('app:ejecutar-validacion-salida')
+            ->everyMinute()->withoutOverlapping();*/
 
 	    $schedule->command('app:descuento-cine')
             ->everyMinute()->withoutOverlapping();

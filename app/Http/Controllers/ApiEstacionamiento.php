@@ -23,9 +23,11 @@ use App\Models\RegistroDescuentoAplicado;
 use App\Models\RegistroEstacionamientoPago;
 use App\Models\TicketEventoDescuentoEspecial;
 use App\Models\RegistroDescuentoCine;
+use App\Models\RegistroDescuentoAtc;
 use App\Models\DescuentoProveedor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+
 
 
 use Illuminate\Support\Facades\Log;
@@ -1352,6 +1354,7 @@ class ApiEstacionamiento extends Controller
 
     public function generarQRExpress(Request $request)
     {
+		
         //VALIDACIÓN (identificador obligatorio)
         $validated = $request->validate([
             'identificador'  => ['required','string','max:100'],
@@ -1385,6 +1388,7 @@ class ApiEstacionamiento extends Controller
         ];
 
         try {
+			
             $response = $client->post(
                 'https://comercios.bancard.com.py/external-commerce/api/0.1/commerces/807386/branches/32/selling/generate-qr-express',
                 [
@@ -1407,6 +1411,8 @@ class ApiEstacionamiento extends Controller
             $pago->identificador   = $validated['identificador'];
             $pago->nombre_cliente  = $validated['nombre_cliente'] ?? null;
             $pago->ruc_cliente     = $validated['ruc'] ?? null;
+			$pago->amount     	   = $validated['monto'] ?? null;
+			$pago->currency        = 'GS';
             $pago->save();
 
             return response()->json([
@@ -1418,7 +1424,7 @@ class ApiEstacionamiento extends Controller
             // Si Bancard devolvió respuesta con error, mostramos ese body si existe
             $resp = $e->getResponse();
             $body = $resp ? (string) $resp->getBody() : null;
-
+			
             return response()->json([
                 'error'   => 'Error en la solicitud a Bancard',
                 'message' => $e->getMessage(),
@@ -1435,74 +1441,283 @@ class ApiEstacionamiento extends Controller
 
     public function bancardCallback(Request $request)
     {
-        // Verificar autenticación Basic Auth
-        /*$username = 'bancard_qr_checkout'; // Cambia esto por tu usuario
-        //$password = 'yVGfgZ0qsJwwJkRT8sCGD4XtlL87K9'; // Cambia esto por tu contraseña
-        
-        $password = '1$kj=A7?6$E3@a<z[L5p)O2E>0Qod&';
-
-        // Obtener el header Authorization
-        $authHeader = $request->header('Authorization');
-
-        // Verificar si se proporcionó el encabezado Authorization
-        if (!$authHeader || !$this->checkBasicAuth($authHeader, $username, $password)) {
-            return response()->json(['message' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
-        }*/
-        //Log::info('Pago recibido:', $pago);        
-        if ($request->has('payment')) {
-
-            $pago = QRTransaction::where('hook_alias', $request->input('payment.hook_alias'))->first();
-            if ($pago) 
-            {
-                $pago->hook_alias = $request->input('payment.hook_alias'); 
-                $pago->status = $request->input('payment.status'); 
-                $pago->response_code = $request->input('payment.response_code'); 
-                $pago->response_description = $request->input('payment.response_description'); 
-                $pago->amount = $request->input('payment.amount'); 
-                $pago->currency = $request->input('payment.currency'); 
-                $pago->installment_number = $request->input('payment.installment_number'); 
-                $pago->description = $request->input('payment.description'); 
-                $pago->ticket_number = $request->input('payment.ticket_number'); 
-                $pago->authorization_code = $request->input('payment.authorization_code'); 
-                $pago->commerce_name = $request->input('payment.commerce_name'); 
-                $pago->branch_name = $request->input('payment.branch_name'); 
-                $pago->bin = $request->input('payment.bin'); 
-                $pago->merchant_code = $request->input('payment.merchant_code'); 
-                $pago->card_last_numbers = $request->input('payment.card_last_numbers'); 
-                $pago->account_type = $request->input('payment.account_type'); 
-                $pago->name = $request->input('payment.payer.name'); 
-                $pago->lastname = $request->input('payment.payer.lastname');
-                $pago->save(); 
+		//fecha de pago
+		$updated_at = date("Y-m-d H:i:s");
+		
+        try {
+            // Verificar que el webhook tenga la estructura correcta
+            if (!$request->has('payment')) {
+                
+                return response()->json([
+                    "status" => "error",
+                    "messages" => [["level" => "error", "key" => "InvalidStructure", "description" => "Estructura del pago inválida"]]
+                ], 400);
             }
+
+            // PASO 1: Guardar/actualizar la transacción QR
+            $hook_alias = $request->input('payment.hook_alias');
+            $pago = QRTransaction::where('hook_alias', $hook_alias)->first();
+            
+		
+            if (!$pago) {
+                
+                return response()->json([
+                    "status" => "error",
+                    "messages" => [["level" => "error", "key" => "PaymentNotFound", "description" => "Pago no encontrado"]]
+                ], 404);
+            }
+
+            // Actualizar toda la información del pago
+            $pago->hook_alias = $request->input('payment.hook_alias'); 
+            $pago->status = $request->input('payment.status'); 
+            $pago->response_code = $request->input('payment.response_code'); 
+            $pago->response_description = $request->input('payment.response_description'); 
+            $pago->amount = $request->input('payment.amount'); 
+            $pago->currency = $request->input('payment.currency'); 
+            $pago->installment_number = $request->input('payment.installment_number'); 
+            $pago->description = $request->input('payment.description'); 
+            $pago->ticket_number = $request->input('payment.ticket_number'); 
+            $pago->authorization_code = $request->input('payment.authorization_code'); 
+            $pago->commerce_name = $request->input('payment.commerce_name'); 
+            $pago->branch_name = $request->input('payment.branch_name'); 
+            $pago->bin = $request->input('payment.bin'); 
+            $pago->merchant_code = $request->input('payment.merchant_code'); 
+            $pago->card_last_numbers = $request->input('payment.card_last_numbers'); 
+            $pago->account_type = $request->input('payment.account_type'); 
+            $pago->name = $request->input('payment.payer.name'); 
+            $pago->lastname = $request->input('payment.payer.lastname');
+			$pago->updated_at = $updated_at;
+			
+            // FLUJO BACKEND-FIRST: Solo si el pago fue EXITOSO, ejecutar BookPayment y factura
+            if (($pago->status === 'confirmed' || $pago->response_code === '00') && !$pago->procesado_backend) {
+               
+
+                // PASO 2: Ejecutar BookPayment a Skidata (habilitar salida)
+                try {
+                     $response = $this->ejecutarBookPaymentQr($pago);
+					
+					 $pago->status_code = $response->getStatusCode();
+					 $pago->procesado_backend = 1;
+					 $pago->fecha_procesamiento = now();
+					 
+						
+					if ($response->getStatusCode() !== 200) {
+						
+						$pago->status = 'failed';
+						
+						return response()->json([
+							'success' => false,
+							'message' => 'Error al procesar pago'
+						], 400);
+					}
+					
+					$pago->save();
+                    
+                } catch (\Exception $e) {
+					
+					return response()->json([
+						'success' => false,
+						'message' => $e->getMessage()
+					], 500);
+					
+                }
+
+                // PASO 3: Generar factura electrónica
+                try {
+                    $this->generarFacturaQr($pago);
+                    
+                } catch (\Exception $e) {
+                    
+                    // Continuar de todas formas, no fallar el webhook
+                }
+
+                // Marcar que el cierre fue procesado en backend
+                $pago->procesado_backend = 1;
+                $pago->fecha_procesamiento = now();
+            }
+
+            $pago->save();
+
+            // Responder a Bancard inmediatamente
+            return response()->json([
+                "status" => "success",
+                "messages" => [
+                    [
+                        "level" => "success",
+                        "key" => "Confirmed",
+                        "description" => "Pago recibido y procesado exitosamente"
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            
+
+            // Responder éxito a Bancard de todas formas (para no causar reintentos innecesarios)
+            return response()->json([
+                "status" => "success",
+                "messages" => [["level" => "info", "key" => "Received", "description" => "Webhook recibido"]]
+            ]);
+        }
+    }
+
+    /**
+     * Ejecuta BookPayment a Skidata para la transacción QR
+     * Habilita la salida cuando el pago es confirmado
+     */
+    private function ejecutarBookPaymentQr($pago)
+	{
+		try {
+
+			$precio = $pago->amount;
+			$url = $this->url;
+			$currency = 'PYG';
+			$this->externalDeviceId = 457; 
+			$this->parkingDeviceId = 80;
+
+			$body = '
+			<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:msg="http://www.skidata.com/interfaces/parking/ticketManagement/v4/msg" xmlns:data="http://www.skidata.com/interfaces/parking/ticketManagement/v4/data" xmlns:com="http://www.skidata.com/contractor/dtaservice/v7/common">
+				<soapenv:Header/>
+				<soapenv:Body>
+					<msg:BookPayment>
+						<msg:facilityId>' . $this->facilityId . '</msg:facilityId>
+						<msg:ticketId xsi:type="ns481:GenericIdentification" xmlns:ns481="http://www.skidata.com/contractor/dtaservice/v7/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+							<ns481:Identificator>' . $pago->identificador . '</ns481:Identificator>
+							<ns481:Type>PARK</ns481:Type>
+						</msg:ticketId>
+						<msg:paymentItem xsi:type="data:CashPaymentItem" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+							<data:Amount>
+								<com:Amount>' . $precio . '</com:Amount>
+								<com:CurrencyCode>' . $currency . '</com:CurrencyCode>
+							</data:Amount>
+						</msg:paymentItem>
+						<msg:externalDeviceId>' . $this->externalDeviceId . '</msg:externalDeviceId>
+						<msg:parkingDeviceId>' . $this->parkingDeviceId . '</msg:parkingDeviceId>
+					</msg:BookPayment>
+				</soapenv:Body>
+			</soapenv:Envelope>';
+
+			$client = new Client();
+
+			$response = $client->post($url, [
+				'headers' => [
+					'Content-Type' => 'text/xml; charset=utf-8',
+					'Authorization' => 'Basic ' . base64_encode($this->usuario . ':' . $this->password),
+				],
+				'body' => $body,
+			]);
+
+			$statusCode = $response->getStatusCode();
+
+			$responseBody = $response->getBody()->getContents();
+
+			$dom = new \DOMDocument();
+			$dom->loadXML($responseBody);
+
+			$xpath = new \DOMXPath($dom);
+
+			$xpath->registerNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
+			$xpath->registerNamespace('msg', 'http://www.skidata.com/interfaces/parking/ticketManagement/v4/msg');
+			$xpath->registerNamespace('ns2', 'http://www.skidata.com/contractor/dtaservice/v7/common');
+			$xpath->registerNamespace('ns3', 'http://www.skidata.com/interfaces/parking/ticketManagement/v4/data');
+
+			$amountPaid = $xpath->evaluate('string(//ns3:AmountPaid/ns2:Amount)');
+
+			// Registrar pago
+			$registro_pago = new RegistroEstacionamientoPago;
+			$registro_pago->identificador = $pago->identificador;
+			$registro_pago->price = $pago->amount;
+			$registro_pago->user_id = $pago->usuario_id ?? 0;
+			$registro_pago->user_name = $pago->name ?? 'QR';
+			$registro_pago->user_lastname = $pago->lastname ?? 'Anónimo';
+			$registro_pago->fecha_pago = date('Y-m-d');
+			$registro_pago->hora_pago = date('H:i:s');
+			$registro_pago->qr_transaction_id = $pago->id;
+			//$registro_pago->return_xml = $responseBody;
+			$registro_pago->status_code = $statusCode;
+			$registro_pago->save();
+
+			$pago->registro_pago_id = $registro_pago->id;
+			$pago->salida_ejecutada = 1;
+			$pago->save();
+
+			return response()->json([
+				'success' => true,
+				'message' => 'Pago procesado correctamente',
+				'status' => $statusCode,
+				'amount_paid' => $amountPaid,
+			], 200);
+
+		} catch (\GuzzleHttp\Exception\ClientException $e) {
+
+			return response()->json([
+				'success' => false,
+				'message' => 'Error del cliente',
+				'error' => $e->getMessage(),
+			], 400);
+
+		} catch (\GuzzleHttp\Exception\ServerException $e) {
+
+			return response()->json([
+				'success' => false,
+				'message' => 'Error del servidor SOAP',
+				'error' => $e->getMessage(),
+			], 500);
+
+		} catch (\Exception $e) {
+
+			return response()->json([
+				'success' => false,
+				'message' => 'Error general',
+				'error' => $e->getMessage(),
+			], 500);
+		}
+	}
+
+    /**
+     * Genera la factura electrónica para la transacción QR
+     */
+    private function generarFacturaQr($pago)
+    {
+        // Verificar que no exista factura duplicada
+        $factura_existente = HistorialFactura::where('identificador', $pago->identificador)
+            ->where('transaccion_qr_id', $pago->id)
+            ->first();
+
+        if ($factura_existente) {
+            
+            return;
         }
 
-        //Log::info('Pago recibido:', $request->all());
+        // Crear nueva factura
+        $factura = new HistorialFactura;
+        $factura->monto_factura = $pago->amount;
+        $factura->fecha_factura = date('Y-m-d');
+        $factura->identificador = $pago->identificador;
+        $factura->transaccion_qr_id = $pago->id;
+        $factura->authorization_number = $pago->authorization_code;
+        $factura->ticket_number = $pago->ticket_number;
 
+        // RUC del cliente - por ahora usar el almacenado en QRTransaction o genérico
+        if ($pago->ruc_cliente && $pago->ruc_cliente != '88888801-5') {
+            $cliente = RucActivo::where('ruc', $pago->ruc_cliente)->orWhere('codigo', $pago->ruc_cliente)->first();
+            if ($cliente) {
+                $factura->documento = $cliente->ruc;
+                $factura->razon_social = $cliente->nombre;
+            } else {
+                $factura->documento = $pago->ruc_cliente;
+                $factura->razon_social = 'Cliente';
+            }
+        } else {
+            // Cliente ocasional
+            $factura->documento = '44444401-7';
+            $factura->razon_social = 'Cliente Ocasional';
+        }
 
-        // Realiza aquí el procesamiento necesario
-        // Ejemplo: actualizar el estado de la orden
+        $factura->user_id = $pago->usuario_id ?? 0;
+        $factura->save();
 
-        return response()->json([
-            "status" => "success",
-            "messages" => [
-                [
-                    "level" => "success",
-                    "key" => "Confirmed",
-                    "description" => "Pago recibido con éxito"
-                ]
-            ]
-        ]);
-
-        /*return response()->json([
-            "status" => "error",
-            "messages" => [
-                [
-                    "level" => "error",
-                    "key" => "ConfirmedError",
-                    "description" => "No se pudo procesar la confirmacion"
-                ]
-            ]
-        ], Response::HTTP_OK);*/
+       
     }
 
     private function checkBasicAuth($authHeader, $username, $password)
@@ -1987,6 +2202,96 @@ class ApiEstacionamiento extends Controller
             }
     }
     
+	
+	public function registrar_descuento_atc(Request $request)
+    {
+		//validar_ticket 
+		if(strlen($request->ticket) != 23)
+        {
+            return response()->json([
+                'status' => 500,
+                'data' => $descuento,
+                'message' => "Por favor, vuelva a pasar el código QR por el escáner."
+            ], 500);
+        }
+		$descuento = new RegistroDescuentoAtc;
+		$descuento->identificador = $request->ticket;
+		$descuento->documento = $request->nro_documento;
+		$descuento->nombre_apellido = $request->nombre_apellido;
+		$descuento->comentario = $request->comentario;
+		$descuento->created_at = date('Y-m-d H:i:s');
+		$descuento->save();
+		
+		
+		////ENVIAR A SKIDATA EL DESCUENTO A aplicar_descuento_ticket
+            $body = '
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:msg="http://www.skidata.com/interfaces/parking/ticketManagement/v4/msg">
+                    <soapenv:Header/>
+                    <soapenv:Body>
+                        <msg:InsertElectronicValidation>
+                            <msg:validationId>APT.VAL.1901198.32</msg:validationId>
+                            <msg:ticketId xsi:type="ns481:GenericIdentification" xmlns:ns481="http://www.skidata.com/contractor/dtaservice/v7/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                                <ns481:Identificator>'.$request->ticket.'</ns481:Identificator>
+                                <ns481:Type>PARK</ns481:Type>
+                            </msg:ticketId>
+                            <msg:externalDeviceId>458</msg:externalDeviceId>
+                            <msg:parkingDeviceId>81</msg:parkingDeviceId>
+                        </msg:InsertElectronicValidation>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+                ';
+			
+            $client = new Client();
+        
+            try 
+			{
+			
+				$response = $client->post($this->url, [
+					'headers' => [
+						'Content-Type' => 'text/xml; charset=utf-8',
+						'Authorization' => 'Basic ' . base64_encode($this->usuario . ':' . $this->password),
+					],
+					'body' => $body,
+				]);
+
+				$statusCode = $response->getStatusCode();
+				$bodyResponse = $response->getBody()->getContents();
+				
+				//guardando registros
+				$descuentoUpdate = RegistroDescuentoAtc::where('identificador', $request->ticket)->first();
+				$descuentoUpdate->updated_at = date('Y-m-d H:i:s');
+				$descuentoUpdate->status_code = $statusCode;
+				$descuentoUpdate->save();
+
+				if ($statusCode == 200)
+				{
+					return response()->json([
+						'status' => 'success',
+						'message' => 'Exoneración exitosa',
+						'status_code' => $statusCode,
+						'response_body' => $bodyResponse,
+					], 200);
+				}
+
+				return response()->json([
+					'status' => 'error',
+					'message' => 'Respuesta no exitosa del servidor externo',
+					'status_code' => $statusCode,
+					'response_body' => $bodyResponse,
+				], $statusCode);
+
+			} 
+			catch (\Exception $e) 
+			{
+				return response()->json([
+					'status' => 'error',
+					'message' => $e->getMessage(),
+				], 500);
+			}
+		////FIN DE FUNCION DE LLAMADO A XML
+    }
+	
+	
     public function evento_especial(Request $request)
     {
         $now = Carbon::now(new \DateTimeZone('Etc/GMT+3'));

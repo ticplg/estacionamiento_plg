@@ -24,6 +24,9 @@ class RegistroEstacionamientoPago extends Model
         'user_lastname',
         'fecha_pago',
         'hora_pago',
+		'qr_transaction_id',
+		'return_xml',
+		'status_code'
     ];
 
     /**

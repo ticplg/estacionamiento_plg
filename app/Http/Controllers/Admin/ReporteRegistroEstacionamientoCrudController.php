@@ -68,8 +68,10 @@ class ReporteRegistroEstacionamientoCrudController extends CrudController
                 'reporte_pagos_pendiente_factura' => 'Pagos sin Factura Asociada','facturas_rechazadas_sifen' =>'Facturas Rechazadas SIFEN',
                 'reporte_validados_zf' => 'Tickets Validados Zona Fit', 
                 'reporte_salon_eventos' => 'Tickets Salon de Eventos', 
+                'reporte_descuento_proveedores' => 'Descuentos Proveedores',
                 'reporte_lectura_tickets' => 'Tickets Leidos via APP', 
                 'reporte_ticket_hotel' => 'Tickets Hotel', 
+                'reporte_descuento_cines' => 'Descuentos Cines',
             ],
             'default'   => 'reporte_lectura_pagos',
             'wrapper' => [

@@ -42,5 +42,7 @@ class QRTransaction extends Model
         'fullname',
         'email',
         'ci',
+		'updated_at',
+		'status_code',
     ];
 }
