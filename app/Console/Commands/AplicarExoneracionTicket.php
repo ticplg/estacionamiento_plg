@@ -300,6 +300,7 @@ class AplicarExoneracionTicket extends Command
 
             $eventos = EventoDescuento::where('fecha_hora_inicio', '<=', $now)
                 ->where('fecha_hora_fin_exoneracion', '>=', $now)
+                ->where('tarifado', 0)//Agregado 08-09-2026: Higinio Samaniego
                 ->pluck('id');
 
             $this->line('Eventos activos encontrados: ' . $eventos->count());

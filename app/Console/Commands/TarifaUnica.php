@@ -357,6 +357,12 @@ class TarifaUnica extends Command
                     $ticket->save();
                 }
             } catch (\Throwable $e) {
+                /**
+                 * Agregado 08-09-2026: Higinio Samaniego
+                 */
+                $ticket->finalizo_descuento = 1;
+                $ticket->save();
+                
                 $this->warn("Error con ticket {$ticket->identificador}. Continúo con el siguiente.");
             }
         }
@@ -401,9 +407,22 @@ class TarifaUnica extends Command
                 return true;
             } else {
                 $this->warn("Status {$response->getStatusCode()} al aplicar descuento {$codigo} a {$identificador}");
+                
+                /**
+                 * Agregado 08-09-2026: Higinio Samaniego
+                 */
+                $ticket->finalizo_descuento = 1;
+                $ticket->save();
+                
                 return false;
             }
         } catch (\Throwable $e) {
+            /**
+             * Agregado 08-09-2026: Higinio Samaniego
+             */
+            $ticket->finalizo_descuento = 1;
+            $ticket->save();
+
             \Log::info($e);
             $this->warn("No se pudo aplicar descuento {$codigo} a {$identificador}. Continúo.");
             return false;
@@ -471,6 +490,16 @@ class TarifaUnica extends Command
             $monto = is_numeric($price) ? (float)$price : 0.0;
             return $monto;
         } catch (\Throwable $e) {
+            /**
+            *Agregado 08-09-2026: Higinio Samaniego
+            */
+            $ticket = TicketEventoDescuento::where('identificador', $identificador)->first();
+            if($ticket)
+            {
+                $ticket->finalizado = 1;
+                $ticket->save();
+            }
+
             \Log::info($e);
             $this->warn("No se pudo obtener monto para {$identificador}. Devuelvo 0.");
             return 0.0;
