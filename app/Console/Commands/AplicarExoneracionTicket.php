@@ -117,7 +117,7 @@ class AplicarExoneracionTicket extends Command
                     <soapenv:Header/>
                     <soapenv:Body>
                         <msg:InsertElectronicValidation>
-                            <msg:validationId>APT.VAL.1901198.5001</msg:validationId>
+                            <msg:validationId>APT.VAL.1901198.40</msg:validationId>
                             <msg:ticketId xsi:type="ns481:GenericIdentification" xmlns:ns481="http://www.skidata.com/contractor/dtaservice/v7/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                                 <ns481:Identificator>'.$ticket->identificador.'</ns481:Identificator>
                                 <ns481:Type>PARK</ns481:Type>
@@ -186,7 +186,7 @@ class AplicarExoneracionTicket extends Command
                         <soapenv:Header/>
                         <soapenv:Body>
                             <msg:InsertElectronicValidation>
-                                <msg:validationId>APT.VAL.1901198.5001</msg:validationId>
+                                <msg:validationId>APT.VAL.1901198.40</msg:validationId>
                                 <msg:ticketId xsi:type="ns481:GenericIdentification" xmlns:ns481="http://www.skidata.com/contractor/dtaservice/v7/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                                     <ns481:Identificator>'.$ticket->identificador.'</ns481:Identificator>
                                     <ns481:Type>PARK</ns481:Type>
@@ -281,7 +281,7 @@ class AplicarExoneracionTicket extends Command
         $tickets = RegistroDescuentoCine::whereNull('fecha_exoneracion')->get();
         foreach($tickets as $ticket)
         {
-            $ok = $this->aplicar_descuento_ticket($ticket->identificador, 35);
+            $ok = $this->aplicar_descuento_ticket($ticket->identificador, 38);
 
             if($ok)
             {
@@ -339,12 +339,12 @@ class AplicarExoneracionTicket extends Command
                     }
                     $ticket->save();
 
-                    // Aplica descuentos de 35 hasta que baje al configurado o menos
+                    // Aplica descuentos de 39 hasta que baje al configurado o menos
                     $loop_guard = 0;
                     while ($monto_actual > $monto_configurado && $loop_guard < 20) {
                         $loop_guard++;
                         $this->warn("Monto mayor al configurado, aplicando descuento (iteración {$loop_guard})...");
-                        $ok = $this->aplicar_descuento_ticket($ticket->identificador, 35);
+                        $ok = $this->aplicar_descuento_ticket($ticket->identificador, 39);
 
                         if (!$ok) {
                             $this->warn('Aplicar descuento devolvió fallo. Corto el ciclo para este ticket.');

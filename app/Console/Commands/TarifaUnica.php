@@ -267,7 +267,7 @@ class TarifaUnica extends Command
         $tickets = RegistroDescuentoCine::whereNull('fecha_exoneracion')->get();
         foreach($tickets as $ticket)
         {
-            $ok = $this->aplicar_descuento_ticket($ticket->identificador, 35);
+            $ok = $this->aplicar_descuento_ticket($ticket->identificador, 38);
 
             if($ok)
             {
@@ -325,12 +325,12 @@ class TarifaUnica extends Command
                     }
                     $ticket->save();
 
-                    // Aplica descuentos de 35 hasta que baje al configurado o menos
+                    // Aplica descuentos de 39 hasta que baje al configurado o menos
                     $loop_guard = 0;
                     while ($monto_actual > $monto_configurado && $loop_guard < 20) {
                         $loop_guard++;
                         $this->warn("Monto mayor al configurado, aplicando descuento (iteración {$loop_guard})...");
-                        $ok = $this->aplicar_descuento_ticket($ticket->identificador, 35);
+                        $ok = $this->aplicar_descuento_ticket($ticket->identificador, 39);
 
                         if (!$ok) {
                             $this->warn('Aplicar descuento devolvió fallo. Corto el ciclo para este ticket.');
