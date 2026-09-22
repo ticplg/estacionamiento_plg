@@ -216,9 +216,9 @@ class ApiEstacionamiento extends Controller
             //$interval = $dateTimeEnd_->diff($rateEnd_);
 
             $fechaParametro = Carbon::parse($hora_inicio);
-            $fechaFin = empty($dateTimeEnd) ? Carbon::now() : Carbon::parse($dateTimeEnd);
+            $ahora = Carbon::now();
 
-            $segundosTotales  = $fechaParametro->diffInSeconds($fechaFin);
+            $segundosTotales  = $fechaParametro->diffInSeconds($ahora);
 
             $horas = floor($segundosTotales / 3600);
             $minutos = floor(($segundosTotales % 3600) / 60);
@@ -229,8 +229,8 @@ class ApiEstacionamiento extends Controller
             $registro->user_app_id = $request->user_id;
             $registro->user_first_name = $request->first_name;  
             $registro->user_last_name = $request->last_name;
-            $registro->fecha_lectura = $fechaFin->format('Y-m-d');
-            $registro->hora_lectua = $fechaFin->format('H:i:s');
+            $registro->fecha_lectura = date('Y-m-d');
+            $registro->hora_lectua = date('H:i:s');
             $registro->price = $price;
             $registro->version = $version;
             $registro->so = $so;
@@ -243,8 +243,8 @@ class ApiEstacionamiento extends Controller
                 //'price' => ($request->user_id == 39200 || $request->user_id == 4184) ? 10000 : $price,
                 //'price_format' => ($request->user_id == 39200 || $request->user_id == 4184) ? '10.000' : number_format($price, 0, '', '.'),
                 'currency' => $currencyCode,
-                'entryDateTime' => date('d-m-y H:i:s', strtotime($hora_inicio)),
-                'finishDateTime' => $fechaFin->format('d-m-y H:i:s'),
+                'entryDateTime' => date('d-m-y H:i', strtotime($hora_inicio)),
+                'finishDateTime' => date('d-m-y H:i', strtotime($dateTimeEnd)),
                 'parkingDuration' =>  sprintf('%02d:%02d:%02d', $horas, $minutos, $segundos),
                 'totalBilledTime' =>  sprintf('%02d:%02d:%02d', $horas, $minutos, $segundos),
                 'ticketNumber' => $identificador,

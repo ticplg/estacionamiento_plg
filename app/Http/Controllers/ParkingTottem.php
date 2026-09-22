@@ -261,7 +261,7 @@ class ParkingTottem extends Controller
 
     public function calcular_duracion_con_descuento($dateString) 
     {
-        $tiempo_de_gracia = 2;
+        $tiempo_de_gracia = 1;
         // Crear un objeto DateTime a partir de la cadena de fecha recibida
         $date = \DateTime::createFromFormat('Y-m-d\TH:i:s.u', $dateString, new \DateTimeZone('America/Asuncion'));
         if ($date === false) {
