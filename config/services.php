@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'facturacion_code100' => [
+        'url' => env('FACTURACION_CODE100_API_URL'),
+        'key' => env('FACTURACION_CODE100_API_KEY'),
+    ],
+
 ];

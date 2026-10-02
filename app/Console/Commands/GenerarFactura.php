@@ -155,13 +155,12 @@ class GenerarFactura extends Command
             return;
         }
 
-        $this->line("   > Obteniendo token...");
-        $authResponse = $this->getAuthToken();
-        if (!is_array($authResponse) || ($authResponse['status'] ?? 500) !== 200) {
-            $this->error('   !! Error al obtener token.');
+        $endpoint = config('services.facturacion_code100.url');
+        $apiKey = config('services.facturacion_code100.key');
+        if (empty($endpoint) || empty($apiKey)) {
+            $this->error('   !! Falta configurar FACTURACION_CODE100_API_URL / FACTURACION_CODE100_API_KEY.');
             return;
         }
-        $this->line('   > Token OK');
 
         $punto_venta = PuntoVenta::where('nombre_punto_venta', $factura->punto_venta)->first();
         if (!$punto_venta) {
@@ -191,36 +190,28 @@ class GenerarFactura extends Command
             return;
         }
 
-        $endpoint = $this->url_mega_print.'/ecf';
         $client = new Client();
 
         try {
-            $this->line("   > Enviando XML a {$endpoint} (id_peticion={$factura->id})...");
+            $this->line("   > Enviando XML a {$endpoint} (factura id={$factura->id})...");
+            // Guzzle lanza RequestException ante 4xx/5xx, por lo que la factura queda pendiente para reintento
             $response = $client->post($endpoint, [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $authResponse['body']['token'],
+                    'X-API-KEY' => $apiKey,
+                    'Content-Type' => 'application/xml',
                     'Accept' => 'application/json',
                 ],
-                'multipart' => [
-                    [
-                        'name' => 'encabezado',
-                        'contents' => $fileContent,
-                        'filename' => $nombre.'xml',
-                    ],
-                    [
-                        'name' => 'id_peticion',
-                        'contents' => $factura->id,
-                    ],
-                ],
+                'body' => $fileContent,
+                'connect_timeout' => 10,
+                'timeout' => 60,
             ]);
 
             $statusCode = $response->getStatusCode();
             $this->line("   > Respuesta HTTP: {$statusCode}");
 
-            $responseBody = $response->getBody()->getContents();
-            $xml = @simplexml_load_string($responseBody);
-            if (!$xml) {
-                $this->warn('   !! Respuesta no es XML parseable.');
+            if ($statusCode !== 200) {
+                $this->error('   !! Respuesta inesperada, la factura queda pendiente: '.$response->getBody()->getContents());
+                return;
             }
 
             $factura->fecha_inicio_timbrado = $xmlContent['fecha_inicio_timbrado'];
