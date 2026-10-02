@@ -26,7 +26,7 @@ class GenerarFactura extends Command
      *
      * @var string
      */
-    protected $signature = 'app:generar-factura';
+    protected $signature = 'app:generar-factura {--factura= : ID de HistorialFactura a enviar; si se indica, solo se envía esa factura}';
 
     /**
      * The console command description.
@@ -76,7 +76,8 @@ class GenerarFactura extends Command
 
         $this->setConfigurations();
 
-        foreach ([
+        // Con --factura solo se envía esa factura y se omiten los demás pasos
+        $methods = $this->option('factura') ? ['generar_factura'] : [
             'generar_factura',
             'obtenerPdf',
             'asignar_tipo_tarjeta',
@@ -84,7 +85,9 @@ class GenerarFactura extends Command
             'verificar_codigo_descuento',
             'transacciones_tarjeta',
             'verificar_pagos_qr',
-        ] as $method) {
+        ];
+
+        foreach ($methods as $method) {
             try {
                 $this->info(">> Ejecutando {$method}()");
                 $t0 = microtime(true);
@@ -100,8 +103,25 @@ class GenerarFactura extends Command
 
     public function generar_factura()
     {
+        $facturaId = $this->option('factura');
+        $soloFactura = function ($query) use ($facturaId) {
+            $query->where('id', $facturaId);
+        };
+
+        if ($facturaId) {
+            $pendiente = HistorialFactura::where('id', $facturaId)->first();
+            if (!$pendiente) {
+                $this->error("HistorialFactura id={$facturaId} no existe.");
+                return;
+            }
+            if ($pendiente->numero_factura) {
+                $this->warn("HistorialFactura id={$facturaId} ya fue enviada (nro={$pendiente->numero_factura}). No se reenvía.");
+                return;
+            }
+        }
+
         $this->logStep('Normalizando RUC/razón social pendientes...');
-        $facturas = HistorialFactura::whereNull('documento')->get();
+        $facturas = HistorialFactura::whereNull('documento')->when($facturaId, $soloFactura)->get();
         $this->info('Pendientes sin documento: '.$facturas->count());
 
         foreach ($facturas as $factura) {
@@ -113,7 +133,7 @@ class GenerarFactura extends Command
             }
         }
 
-        $facturas = HistorialFactura::whereNull('documento')->whereNull('razon_social')->get();
+        $facturas = HistorialFactura::whereNull('documento')->whereNull('razon_social')->when($facturaId, $soloFactura)->get();
         $this->info('Pendientes sin documento y sin razón social: '.$facturas->count());
         foreach ($facturas as $factura) {
             $factura->documento = '44444401-7';
@@ -124,6 +144,7 @@ class GenerarFactura extends Command
 
 
         $factura_enviar = HistorialFactura::whereNull('numero_factura')
+            ->when($facturaId, $soloFactura)
             ->orderBy('id', 'asc')
             ->take(50)
             ->get();
