@@ -322,7 +322,9 @@ class GenerarFactura extends Command
         $dDirEmi = 'SANTA TERESA ENTRE AVIADORES DEL CHACO Y HERMINIO MALDONADO';
         $dTelEmi = '0216594000';
         $dEmailE = 'e.santos@megaprint.com.gt';
-        $dNomRec = $cliente;
+        // Escapar caracteres especiales (&, <, >, comillas) para que el XML sea válido
+        $dNomRec = htmlspecialchars(trim($cliente), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        $documento = htmlspecialchars(trim($documento), ENT_XML1 | ENT_QUOTES, 'UTF-8');
         $dCodCliente = '000001';
         $dCantProSer = '1';
         $dTotBruOpeItem = $monto;
