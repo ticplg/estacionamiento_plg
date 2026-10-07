@@ -34,6 +34,8 @@ return [
     'facturacion_code100' => [
         'url' => env('FACTURACION_CODE100_API_URL'),
         'key' => env('FACTURACION_CODE100_API_KEY'),
+        // Opcional: si no se define, se deriva de url (.../daylic/factura -> .../daylic/control-factura)
+        'control_url' => env('FACTURACION_CODE100_CONTROL_URL'),
     ],
 
     'consulta_ruc' => [
