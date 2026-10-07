@@ -213,19 +213,26 @@ class GenerarFactura extends Command
 
         $client = new Client();
 
+        $options = [
+            'headers' => [
+                'X-API-KEY' => $apiKey,
+                'Content-Type' => 'application/xml',
+                'Accept' => 'application/json',
+            ],
+            'body' => $fileContent,
+            'connect_timeout' => 10,
+            'timeout' => 60,
+        ];
+
+        // Usuario de la app que realizó el pago (0 = sin usuario, ej. tótem)
+        if (!empty($factura->user_id)) {
+            $options['query'] = ['usuario_id' => $factura->user_id];
+        }
+
         try {
-            $this->line("   > Enviando XML a {$endpoint} (factura id={$factura->id})...");
+            $this->line("   > Enviando XML a {$endpoint} (factura id={$factura->id}, usuario_id=".($factura->user_id ?: 'sin usuario').")...");
             // Guzzle lanza RequestException ante 4xx/5xx, por lo que la factura queda pendiente para reintento
-            $response = $client->post($endpoint, [
-                'headers' => [
-                    'X-API-KEY' => $apiKey,
-                    'Content-Type' => 'application/xml',
-                    'Accept' => 'application/json',
-                ],
-                'body' => $fileContent,
-                'connect_timeout' => 10,
-                'timeout' => 60,
-            ]);
+            $response = $client->post($endpoint, $options);
 
             $statusCode = $response->getStatusCode();
             $this->line("   > Respuesta HTTP: {$statusCode}");
