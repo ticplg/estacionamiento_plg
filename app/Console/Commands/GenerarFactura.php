@@ -176,7 +176,8 @@ class GenerarFactura extends Command
             return;
         }
 
-        $endpoint = config('services.facturacion_code100.url');
+        // Se descarta cualquier query string de la URL configurada; usuario_id se agrega más abajo
+        $endpoint = strtok((string) config('services.facturacion_code100.url'), '?');
         $apiKey = config('services.facturacion_code100.key');
         if (empty($endpoint) || empty($apiKey)) {
             $this->error('   !! Falta configurar FACTURACION_CODE100_API_URL / FACTURACION_CODE100_API_KEY.');
