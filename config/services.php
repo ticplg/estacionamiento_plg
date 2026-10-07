@@ -36,4 +36,10 @@ return [
         'key' => env('FACTURACION_CODE100_API_KEY'),
     ],
 
+    'consulta_ruc' => [
+        'url' => env('CONSULTA_RUC_API_URL', 'https://api.consulta-ruc.com.py/api/v1'),
+        'email' => env('CONSULTA_RUC_EMAIL'),
+        'password' => env('CONSULTA_RUC_PASSWORD'),
+    ],
+
 ];

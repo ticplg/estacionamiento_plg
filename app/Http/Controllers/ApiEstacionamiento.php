@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Validator;
 
 
 use Illuminate\Support\Facades\Log;
+use App\Services\ConsultaRucService;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApiEstacionamiento extends Controller
@@ -1940,53 +1941,32 @@ class ApiEstacionamiento extends Controller
 
         if(!$cliente)
         {
-            $token = $this->getAuthToken()['body']['token'];
-            $client = new Client();
-            $headers = [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer '.$token
-            ];
+            $ruc = trim(explode('-', $request->ruc)[0]);
+            $datos = (new ConsultaRucService)->consultar($ruc);
 
-            $ruc = explode('-', $request->ruc)[0];
-
-            $res = $client->get($this->url_mega_print.'/consultaRuc', [
-                'headers' => $headers,
-                'query' => [
-                    'ruc' => $ruc
-                ]
-            ]);
-
-            $datos = json_decode($res->getBody()->getContents());
-
-            $rucConsultado = $datos->rucConsultado ?? null;
-            $codigoEstado = $datos->codigoEstado ?? null;
-            $razonSocial = $datos->razonSocial ?? null;
-            $rucEsFacturadorElectronico = $datos->rucEsFacturadorElectronico ?? null;
-
-            if(isset($rucConsultado))
+            // La API devuelve el RUC con el DV correcto (ej. 80026326-0); se guarda ese y no el ingresado
+            if($datos && strtoupper($datos['estado'] ?? '') == 'ACTIVO')
             {
-                $rucActivo = new RucActivo;
-                $rucActivo->ruc = $request->ruc;
-                $rucActivo->codigo = $ruc;
-                $rucActivo->nombre = $razonSocial;
-                $rucActivo->tipo = $ruc[1] ?? 0;
-                $rucActivo->identificador = rand (1000000, 9999999);
-                $rucActivo->estado = 'ACTIVO';
-                $rucActivo->save();
+                $cliente = RucActivo::firstOrCreate(
+                    ['ruc' => $datos['ruc']],
+                    [
+                        'codigo' => $ruc,
+                        'nombre' => $datos['persona'],
+                        'tipo' => $ruc[1] ?? 0,
+                        'identificador' => rand(1000000, 9999999),
+                        'estado' => 'ACTIVO',
+                    ]
+                );
             }
         }
-
-        $cliente = RucActivo::where('ruc', $request->ruc)->first();
 
         return response()->json([
             'status' => 200,
             'data' => $cliente
         ], 200);
 
-        
+
     }
-
-
 
     public function forma_pagos(Request $request)
     {
