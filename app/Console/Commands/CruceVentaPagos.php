@@ -94,43 +94,20 @@ class CruceVentaPagos extends Command
         ->take(10000)
         ->get();
 
-        $procesadas = 0;
-
-        foreach($facturas as $factura)
-        {
-            $client = new Client();
-            $response = $client->post('https://api.factpy.com/facturacion-api/consultaDE.php', [
-                'form_params' => [
-                    'cdc' => $factura->cdc,
-                    'recordID' => '45-9BD5A2E5',
-                ],
-            ]);
-
-            $body = $response->getBody()->getContents();
-            $data = json_decode($body, true);
-
-            // Verificamos que sea un array y tenga la clave "status"
-            if (is_array($data) && array_key_exists('status', $data)) {
-                if ($data['status'] === true) {
-                    $factura->estado_factura = 'Aprobado';
-                    $this->info("Factura Aprobada {$factura->id}");
-                } else {
-                    $factura->estado_factura = 'Rechazado';
-                    $this->info("Factura Rechazada {$factura->id}");
-                }
-                $factura->save();
-            } else {
-                // Log o print si vino una respuesta inesperada
-                $factura->estado_factura = 'Rechazado';
-                $factura->save();
-                $this->error("Factura Rechazada {$factura->id}");
-                //$this->error("Respuesta inválida o malformada para factura {$factura->id}");
-            }
-        }
-        $this->info("Proceso finalizado. Total aprobadas: {$procesadas}");
+        $this->consultar_estado_code100($facturas, 'Skydata');
     }
 
     public function verificar_estado_factura_app()
+    {
+        $facturas = \App\Models\HistorialFactura::where('estado_factura', 'Pendiente')
+        ->whereNotNull('cdc')
+        ->take(10000)
+        ->get();
+
+        $this->consultar_estado_code100($facturas, 'App');
+    }
+
+    private function consultar_estado_code100($facturas, $origen)
     {
         // Consulta el estado en Code100: GET {base}/daylic/control-factura/{cdc}
         $url = config('services.facturacion_code100.control_url');
@@ -145,12 +122,7 @@ class CruceVentaPagos extends Command
             return;
         }
 
-        $facturas = \App\Models\HistorialFactura::where('estado_factura', 'Pendiente')
-        ->whereNotNull('cdc')
-        ->take(10000)
-        ->get();
-
-        $this->info("Verificando estado en Code100 ({$url}): {$facturas->count()} facturas pendientes");
+        $this->info("Verificando estado {$origen} en Code100 ({$url}): {$facturas->count()} facturas pendientes");
 
         $client = new Client();
         $aprobadas = 0;
@@ -169,7 +141,7 @@ class CruceVentaPagos extends Command
                     'timeout' => 30,
                 ]);
             } catch (\Throwable $e) {
-                $this->error("Factura {$factura->id}: error consultando Code100: ".$e->getMessage());
+                $this->error("Factura {$origen} {$factura->id}: error consultando Code100: ".$e->getMessage());
                 continue;
             }
 
@@ -179,7 +151,7 @@ class CruceVentaPagos extends Command
             // 422 = CDC inválido, 409 = Code100 tiene ese número con otro CDC: se informa y queda Pendiente
             if ($statusCode !== 200 || !is_array($data)) {
                 $detalle = is_array($data) ? ($data['detail'] ?? json_encode($data)) : '';
-                $this->error("Factura {$factura->id} (cdc={$factura->cdc}): HTTP {$statusCode} {$detalle}");
+                $this->error("Factura {$origen} {$factura->id} (cdc={$factura->cdc}): HTTP {$statusCode} {$detalle}");
                 continue;
             }
 
@@ -189,16 +161,16 @@ class CruceVentaPagos extends Command
                 $factura->estado_factura = 'Aprobado';
                 $factura->save();
                 $aprobadas++;
-                $this->info("Factura Aprobada {$factura->id}");
+                $this->info("Factura {$origen} Aprobada {$factura->id}");
             } elseif (str_starts_with($estado, 'rechaz')) {
                 $factura->estado_factura = 'Rechazado';
                 $factura->save();
                 $rechazadas++;
-                $this->info("Factura Rechazada {$factura->id}: ".($data['motivo'] ?? 'sin motivo'));
+                $this->info("Factura {$origen} Rechazada {$factura->id}: ".($data['motivo'] ?? 'sin motivo'));
             }
             // Cualquier otro estado (ej. "pendiente") se deja como está para volver a consultar
         }
-        $this->info("Proceso finalizado. Aprobadas: {$aprobadas}, rechazadas: {$rechazadas}");
+        $this->info("Proceso {$origen} finalizado. Aprobadas: {$aprobadas}, rechazadas: {$rechazadas}");
     }
 
     public function generar_pdf_factura_skydata()
