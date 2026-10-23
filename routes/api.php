@@ -40,6 +40,7 @@ Route::group(['prefix' => 'locatarios'], function () {
     Route::group(['middleware' => 'locatario_token'], function () {
         Route::get('/perfil', [ApiLocatario::class, 'perfil']);
         Route::post('/logout', [ApiLocatario::class, 'logout']);
+        Route::get('/ticket', [ApiLocatario::class, 'verificar_ticket']);
         Route::post('/descuento', [ApiLocatario::class, 'aplicar_descuento']);
     });
 });

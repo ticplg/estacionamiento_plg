@@ -100,6 +100,32 @@ class ApiLocatario extends Controller
         ], 200);
     }
 
+    // Se consulta al leer el QR, antes de mostrar el formulario
+    public function verificar_ticket(Request $request)
+    {
+        $identificador = $this->identificador_qr((string) $request->query('qr', ''));
+
+        if ($identificador === null) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'Por favor, vuelva a pasar el código QR por el escáner.'
+            ], 422);
+        }
+
+        if ($this->descuento_aplicado($identificador)) {
+            return response()->json([
+                'status' => 409,
+                'message' => 'El ticket ya tiene un descuento de locatario aplicado.',
+                'data' => ['identificador' => $identificador],
+            ], 409);
+        }
+
+        return response()->json([
+            'status' => 200,
+            'data' => ['identificador' => $identificador],
+        ], 200);
+    }
+
     public function aplicar_descuento(Request $request)
     {
         $usuario = $request->attributes->get('usuario_locatario');
@@ -120,10 +146,9 @@ class ApiLocatario extends Controller
             ], 422);
         }
 
-        // Si el QR trae una URL, el identificador es lo que viene después de la última /
-        $identificador = trim(Str::afterLast(trim($request->qr), '/'));
+        $identificador = $this->identificador_qr($request->qr);
 
-        if (!preg_match('/^[A-Za-z0-9]{23}$/', $identificador)) {
+        if ($identificador === null) {
             return response()->json([
                 'status' => 422,
                 'message' => 'Por favor, vuelva a pasar el código QR por el escáner.'
@@ -141,11 +166,7 @@ class ApiLocatario extends Controller
         }
 
         try {
-            $aplicado = RegistroDescuentoLocatario::where('identificador', $identificador)
-                ->where('response_status', 200)
-                ->exists();
-
-            if ($aplicado) {
+            if ($this->descuento_aplicado($identificador)) {
                 return response()->json([
                     'status' => 409,
                     'message' => 'El ticket ya tiene un descuento de locatario aplicado.'
@@ -213,6 +234,21 @@ class ApiLocatario extends Controller
             'local' => $usuario->local,
             'codigo_descuento' => $usuario->codigo_descuento,
         ];
+    }
+
+    // Si el QR trae una URL, el identificador es lo que viene después de la última /
+    private function identificador_qr($qr)
+    {
+        $identificador = trim(Str::afterLast(trim($qr), '/'));
+
+        return preg_match('/^[A-Za-z0-9]{23}$/', $identificador) ? $identificador : null;
+    }
+
+    private function descuento_aplicado($identificador)
+    {
+        return RegistroDescuentoLocatario::where('identificador', $identificador)
+            ->where('response_status', 200)
+            ->exists();
     }
 
     private function parametro($nombre)
