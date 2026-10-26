@@ -21,6 +21,12 @@
         {{--<x-backpack::menu-dropdown-item title="Pagos" icon="la la-money" :link="backpack_url('transaction')" />--}}
     </x-backpack::menu-dropdown>
 
+    <x-backpack::menu-dropdown title="Descuento Locatario" icon="la la-store">
+        <x-backpack::menu-dropdown-header title="Descuento Locatario" />
+        <x-backpack::menu-dropdown-item title="Usuarios locatarios" icon="la la-user" :link="backpack_url('usuario-locatario')" />
+        <x-backpack::menu-dropdown-item title="Descuentos aplicados" icon="la la-ticket" :link="backpack_url('registro-descuento-locatario')" />
+    </x-backpack::menu-dropdown>
+
     <x-backpack::menu-dropdown title="Configuraciones" icon="la la-cogs">
         <x-backpack::menu-dropdown-header title="Configuraciones" />
         <x-backpack::menu-dropdown-item title="Configuraciones" icon="la la-cogs" :link="backpack_url('configuracion')" />

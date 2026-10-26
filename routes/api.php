@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiEstacionamiento;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ApiLocatario;
 
 
 /*
@@ -30,6 +31,18 @@ Route::group(['middleware' => 'auth:sanctum'], function() {
     Route::post('/registrar_checkout', [ApiEstacionamiento::class, 'registrar_checkout']);
     
     Route::get('/datos_ticket', [ApiEstacionamiento::class, 'datos_ticket']);
+});
+
+// App de locatarios: auth propia, independiente de users/Sanctum
+Route::group(['prefix' => 'locatarios'], function () {
+    Route::post('/login', [ApiLocatario::class, 'login'])->middleware('throttle:10,1');
+
+    Route::group(['middleware' => 'locatario_token'], function () {
+        Route::get('/perfil', [ApiLocatario::class, 'perfil']);
+        Route::post('/logout', [ApiLocatario::class, 'logout']);
+        Route::get('/ticket', [ApiLocatario::class, 'verificar_ticket']);
+        Route::post('/descuento', [ApiLocatario::class, 'aplicar_descuento']);
+    });
 });
 
 

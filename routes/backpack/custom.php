@@ -42,4 +42,6 @@ Route::group([
     Route::crud('factura-cajero-skydata', 'FacturaCajeroSkydataCrudController');
     Route::crud('ticket-porteria', 'TicketPorteriaCrudController');
     Route::crud('ticket-hotel', 'TicketHotelCrudController');
+    Route::crud('usuario-locatario', 'UsuarioLocatarioCrudController');
+    Route::crud('registro-descuento-locatario', 'RegistroDescuentoLocatarioCrudController');
 }); // this should be the absolute last line of this file
