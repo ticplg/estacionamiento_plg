@@ -176,19 +176,15 @@ class GenerarFactura extends Command
             return;
         }
 
-        // Se descarta cualquier query string de la URL configurada; usuario_id se agrega más abajo
-        $endpoint = strtok((string) config('services.facturacion_code100.url'), '?');
-        $apiKey = config('services.facturacion_code100.key');
-        if (empty($endpoint) || empty($apiKey)) {
-            $this->error('   !! Falta configurar FACTURACION_CODE100_API_URL / FACTURACION_CODE100_API_KEY.');
-            return;
-        }
-
         $punto_venta = PuntoVenta::where('nombre_punto_venta', $factura->punto_venta)->first();
         if (!$punto_venta) {
             $this->warn("   !! Punto de venta '{$factura->punto_venta}' no encontrado para factura id={$factura->id}");
             return;
         }
+
+        // salida_fe del punto de venta: C = Code100, M (o vacío) = Megaprint
+        $salida = self::salidaFe($punto_venta->salida_fe);
+        $this->line('   > Salida FE: '.($salida === 'C' ? 'Code100' : 'Megaprint'));
 
         $this->line('   > Generando XML...');
         $xmlContent = $this->generateXmlContent($monto, $cliente, $documento, $punto_venta, $fecha_hora_emision);
@@ -210,6 +206,44 @@ class GenerarFactura extends Command
         if (empty($fileContent)) {
             $this->error('   !! XML vacío.');
             return;
+        }
+
+        $enviado = $salida === 'C'
+            ? $this->enviarCode100($factura, $fileContent)
+            : $this->enviarMegaprint($factura, $fileContent, $nombre);
+
+        if (!$enviado) {
+            return;
+        }
+
+        $factura->fecha_inicio_timbrado = $xmlContent['fecha_inicio_timbrado'];
+        $factura->timbrado = $xmlContent['timbrado'];
+        $factura->numero_factura = $xmlContent['numero_factura'];
+        $factura->cdc = $xmlContent['cadena'];
+        $factura->save();
+
+        $punto_venta->numero_siguiente = $punto_venta->numero_siguiente + 1;
+        $punto_venta->save();
+
+        $this->info("   > Factura generada OK: nro={$factura->numero_factura}");
+    }
+
+    /**
+     * Normaliza el campo salida_fe de punto_ventas: 'C' = Code100, cualquier otro valor = Megaprint ('M').
+     */
+    public static function salidaFe($valor): string
+    {
+        return strtoupper(trim((string) $valor)) === 'C' ? 'C' : 'M';
+    }
+
+    private function enviarCode100($factura, $fileContent): bool
+    {
+        // Se descarta cualquier query string de la URL configurada; usuario_id se agrega más abajo
+        $endpoint = strtok((string) config('services.facturacion_code100.url'), '?');
+        $apiKey = config('services.facturacion_code100.key');
+        if (empty($endpoint) || empty($apiKey)) {
+            $this->error('   !! Falta configurar FACTURACION_CODE100_API_URL / FACTURACION_CODE100_API_KEY.');
+            return false;
         }
 
         $client = new Client();
@@ -240,22 +274,72 @@ class GenerarFactura extends Command
 
             if ($statusCode !== 200) {
                 $this->error('   !! Respuesta inesperada, la factura queda pendiente: '.$response->getBody()->getContents());
-                return;
+                return false;
             }
 
-            $factura->fecha_inicio_timbrado = $xmlContent['fecha_inicio_timbrado'];
-            $factura->timbrado = $xmlContent['timbrado'];
-            $factura->numero_factura = $xmlContent['numero_factura'];
-            $factura->cdc = $xmlContent['cadena'];
-            $factura->save();
-
-            $punto_venta->numero_siguiente = $punto_venta->numero_siguiente + 1;
-            $punto_venta->save();
-
-            $this->info("   > Factura generada OK: nro={$factura->numero_factura}");
+            return true;
 
         } catch (RequestException $e) {
             $this->error('   !! Error enviando XML: '.$e->getMessage());
+            return false;
+        }
+    }
+
+    private function enviarMegaprint($factura, $fileContent, $nombre): bool
+    {
+        $this->line("   > Obteniendo token...");
+        $authResponse = $this->getAuthToken();
+        if (!is_array($authResponse) || ($authResponse['status'] ?? 500) !== 200 || empty($authResponse['body']['token'])) {
+            $this->error('   !! Error al obtener token.');
+            return false;
+        }
+        $this->line('   > Token OK');
+
+        $endpoint = $this->url_mega_print.'/ecf';
+        $client = new Client();
+
+        try {
+            $this->line("   > Enviando XML a {$endpoint} (id_peticion={$factura->id})...");
+            $response = $client->post($endpoint, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $authResponse['body']['token'],
+                    'Accept' => 'application/json',
+                ],
+                'multipart' => [
+                    [
+                        'name' => 'encabezado',
+                        'contents' => $fileContent,
+                        'filename' => $nombre.'xml',
+                    ],
+                    [
+                        'name' => 'id_peticion',
+                        'contents' => $factura->id,
+                    ],
+                ],
+                'connect_timeout' => 10,
+                'timeout' => 60,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $this->line("   > Respuesta HTTP: {$statusCode}");
+
+            $responseBody = $response->getBody()->getContents();
+
+            if ($statusCode !== 200) {
+                $this->error('   !! Respuesta inesperada, la factura queda pendiente: '.$responseBody);
+                return false;
+            }
+
+            $xml = @simplexml_load_string($responseBody);
+            if (!$xml) {
+                $this->warn('   !! Respuesta no es XML parseable.');
+            }
+
+            return true;
+
+        } catch (RequestException $e) {
+            $this->error('   !! Error enviando XML: '.$e->getMessage());
+            return false;
         }
     }
 

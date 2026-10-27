@@ -104,7 +104,67 @@ class CruceVentaPagos extends Command
         ->take(10000)
         ->get();
 
-        $this->consultar_estado_code100($facturas, 'App');
+        // Cada factura se consulta donde fue enviada según salida_fe de su punto de venta (C = Code100, M = Megaprint/factpy)
+        $salidas = \App\Models\PuntoVenta::pluck('salida_fe', 'nombre_punto_venta');
+        [$code100, $megaprint] = $facturas->partition(function ($factura) use ($salidas) {
+            return GenerarFactura::salidaFe($salidas[$factura->punto_venta] ?? null) === 'C';
+        });
+
+        $this->consultar_estado_code100($code100, 'App');
+        $this->consultar_estado_factpy($megaprint, 'App');
+    }
+
+    private function consultar_estado_factpy($facturas, $origen)
+    {
+        $this->info("Verificando estado {$origen} en factpy (Megaprint): {$facturas->count()} facturas pendientes");
+
+        $client = new Client();
+        $aprobadas = 0;
+        $rechazadas = 0;
+
+        foreach($facturas as $factura)
+        {
+            try {
+                $response = $client->post('https://api.factpy.com/facturacion-api/consultaDE.php', [
+                    'form_params' => [
+                        'cdc' => $factura->cdc,
+                        'recordID' => '45-9BD5A2E5',
+                    ],
+                    'connect_timeout' => 10,
+                    'timeout' => 30,
+                ]);
+            } catch (\Throwable $e) {
+                $this->error("Factura {$origen} {$factura->id}: error consultando factpy: ".$e->getMessage());
+                continue;
+            }
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            // Verificamos que sea un array y tenga la clave "status"
+            if (is_array($data) && array_key_exists('status', $data)) {
+                if ($data['status'] === true) {
+                    $factura->estado_factura = 'Aprobado';
+                    $aprobadas++;
+                    $this->info("Factura {$origen} Aprobada {$factura->id}");
+                } else {
+                    $factura->estado_factura = 'Rechazado';
+                    $rechazadas++;
+                    $this->info("Factura {$origen} Rechazada {$factura->id}");
+                }
+                $factura->save();
+            }
+            else
+            {
+                // Sin respuesta válida de factpy luego de 2 días se da por rechazada
+                if ($factura->fecha_factura && Carbon::parse($factura->fecha_factura)->diffInDays(now()) >= 2) {
+                    $factura->estado_factura = 'Rechazado';
+                    $factura->save();
+                    $rechazadas++;
+                    $this->error("Factura {$origen} Rechazada {$factura->id}");
+                }
+            }
+        }
+        $this->info("Proceso {$origen} factpy finalizado. Aprobadas: {$aprobadas}, rechazadas: {$rechazadas}");
     }
 
     private function consultar_estado_code100($facturas, $origen)
