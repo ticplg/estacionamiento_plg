@@ -13,11 +13,14 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // Ejecuta `app:generar-factura` sin solaparse con ejecuciones anteriores
+        // La salida de los comandos de facturación queda en storage/logs, un archivo por día
         $schedule->command('app:generar-factura')
-            ->everyTenMinutes()->withoutOverlapping();
+            ->everyTenMinutes()->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/generar-factura-'.date('Y-m-d').'.log'));
 
         $schedule->command('app:cruce-venta-pagos')
-            ->everyTenMinutes()->withoutOverlapping();
+            ->everyTenMinutes()->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/cruce-venta-pagos-'.date('Y-m-d').'.log'));
 
 	    /*$schedule->command('app:ejecutar-validacion-salida')
             ->everyMinute()->withoutOverlapping();*/
