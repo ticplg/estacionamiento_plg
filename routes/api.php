@@ -42,6 +42,7 @@ Route::group(['prefix' => 'locatarios'], function () {
         Route::post('/logout', [ApiLocatario::class, 'logout']);
         Route::get('/ticket', [ApiLocatario::class, 'verificar_ticket']);
         Route::post('/descuento', [ApiLocatario::class, 'aplicar_descuento']);
+        Route::get('/descuentos', [ApiLocatario::class, 'reporte_descuentos']);
     });
 });
 

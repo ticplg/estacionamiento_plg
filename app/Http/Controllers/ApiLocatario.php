@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -224,6 +225,85 @@ class ApiLocatario extends Controller
             'message' => 'Descuento aplicado correctamente.',
             'data' => $registro,
         ], 200);
+    }
+
+    // Descuentos aplicados por el local en un rango de fechas (pantalla de reporte de la app)
+    public function reporte_descuentos(Request $request)
+    {
+        $reporte = $this->datos_reporte($request);
+
+        if (isset($reporte['error'])) {
+            return response()->json([
+                'status' => 422,
+                'message' => $reporte['error']
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => 200,
+            'data' => $reporte,
+        ], 200);
+    }
+
+    private function datos_reporte(Request $request)
+    {
+        $validator = Validator::make($request->query(), [
+            'desde' => 'required|date_format:Y-m-d',
+            'hasta' => 'required|date_format:Y-m-d|after_or_equal:desde',
+        ], [
+            'desde.required' => 'La fecha desde es obligatoria.',
+            'hasta.required' => 'La fecha hasta es obligatoria.',
+            'desde.date_format' => 'La fecha desde no es válida.',
+            'hasta.date_format' => 'La fecha hasta no es válida.',
+            'hasta.after_or_equal' => 'La fecha hasta debe ser igual o posterior a la fecha desde.',
+        ]);
+
+        if ($validator->fails()) {
+            return ['error' => $validator->errors()->first()];
+        }
+
+        $desde = Carbon::createFromFormat('Y-m-d', $request->query('desde'))->startOfDay();
+        $hasta = Carbon::createFromFormat('Y-m-d', $request->query('hasta'))->endOfDay();
+
+        if ($desde->copy()->addMonthsNoOverflow(3)->lt($hasta->copy()->startOfDay())) {
+            return ['error' => 'El rango máximo es de 3 meses.'];
+        }
+
+        // El reporte es del local: incluye los descuentos de todos sus usuarios (cajas)
+        $local = $request->attributes->get('usuario_locatario')->local;
+        $usuarios = UsuarioLocatario::where('local', $local)->pluck('usuario', 'id');
+
+        $descuentos = RegistroDescuentoLocatario::whereIn('usuario_id', $usuarios->keys())
+            ->where('response_status', 200)
+            ->whereBetween('fecha_registro', [$desde, $hasta])
+            ->orderBy('fecha_registro')
+            ->get()
+            ->map(function ($registro) use ($usuarios) {
+                return [
+                    'fecha_registro' => $registro->fecha_registro->format('Y-m-d H:i:s'),
+                    'identificador' => $registro->identificador,
+                    'nombre' => $registro->nombre,
+                    'apellido' => $registro->apellido,
+                    'nro_factura' => $registro->nro_factura,
+                    'monto_ticket' => $registro->monto_ticket,
+                    'monto_descuento' => $registro->monto_descuento,
+                    'monto_final' => $registro->monto_final,
+                    'usuario' => $usuarios[$registro->usuario_id] ?? null,
+                ];
+            });
+
+        return [
+            'local' => $local,
+            'desde' => $desde->format('Y-m-d'),
+            'hasta' => $hasta->format('Y-m-d'),
+            'resumen' => [
+                'cantidad' => $descuentos->count(),
+                'monto_ticket' => (int) $descuentos->sum('monto_ticket'),
+                'monto_descuento' => (int) $descuentos->sum('monto_descuento'),
+                'monto_final' => (int) $descuentos->sum('monto_final'),
+            ],
+            'descuentos' => $descuentos->values()->all(),
+        ];
     }
 
     private function datos_usuario(UsuarioLocatario $usuario)
