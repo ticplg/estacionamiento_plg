@@ -94,7 +94,16 @@ class CruceVentaPagos extends Command
         ->take(10000)
         ->get();
 
-        $this->consultar_estado_code100($facturas, 'Skydata');
+        // Cada factura se consulta según salida_fe del cajero de su punto de expedición (001-005 de 001-005-0001234):
+        // C = Code100, M o punto de expedición sin cajero = factpy
+        $salidas = \App\Models\CajeroSkydata::pluck('salida_fe', 'punto_expedicion');
+        [$code100, $megaprint] = $facturas->partition(function ($factura) use ($salidas) {
+            $punto_expedicion = implode('-', array_slice(explode('-', (string) $factura->numero_factura), 0, 2));
+            return GenerarFactura::salidaFe($salidas[$punto_expedicion] ?? null) === 'C';
+        });
+
+        $this->consultar_estado_code100($code100, 'Skydata');
+        $this->consultar_estado_factpy($megaprint, 'Skydata');
     }
 
     public function verificar_estado_factura_app()
@@ -156,7 +165,9 @@ class CruceVentaPagos extends Command
             else
             {
                 // Sin respuesta válida de factpy luego de 2 días se da por rechazada
-                if ($factura->fecha_factura && Carbon::parse($factura->fecha_factura)->diffInDays(now()) >= 2) {
+                // (App usa fecha_factura, Skydata fecha_emision)
+                $fecha = $factura->fecha_factura ?? $factura->fecha_emision;
+                if ($fecha && Carbon::parse($fecha)->diffInDays(now()) >= 2) {
                     $factura->estado_factura = 'Rechazado';
                     $factura->save();
                     $rechazadas++;
