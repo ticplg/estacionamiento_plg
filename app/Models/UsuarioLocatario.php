@@ -19,6 +19,12 @@ class UsuarioLocatario extends Model
     protected $fillable = ['usuario', 'password', 'local', 'codigo_descuento', 'estado'];
     protected $hidden = ['password', 'api_token'];
 
+    // Columna que Backpack muestra en relaciones; evita que la adivine leyendo el esquema de la tabla
+    public function identifiableAttribute()
+    {
+        return 'usuario';
+    }
+
     public function descuentos()
     {
         return $this->hasMany(RegistroDescuentoLocatario::class, 'usuario_id');
