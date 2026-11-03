@@ -15,6 +15,7 @@ use App\Models\RegistroEstacionamientoPago;
 use App\Models\TransaccionTarjetaTotem;
 use App\Models\HistorialFactura;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ParkingTottem extends Controller
 {
@@ -86,11 +87,25 @@ class ParkingTottem extends Controller
             ]);
         }
 
+        if ($identificador === null) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Código de ticket no válido',
+            ], 422);
+        }
+
         $url = $this->url;
 
-        $hora_inicio =  $this->cardInfo($identificador);
-        $hora_inicio =  $this->cardInfo($identificador)['entryDateTime'];
-       
+        // cardInfo devuelve un array si Skidata respondió bien, o un JsonResponse de error si falló
+        $card_info = $this->cardInfo($identificador);
+
+        if (!is_array($card_info)) {
+            Log::warning('Tótem: GetCardInfo falló para el ticket ' . $identificador . ': ' . $card_info->getContent());
+            return $card_info;
+        }
+
+        $hora_inicio = $card_info['entryDateTime'];
+
         $body = '
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:msg="http://www.skidata.com/interfaces/parking/ticketManagement/v4/msg">
             <soapenv:Header/>
