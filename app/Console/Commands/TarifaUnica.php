@@ -291,7 +291,7 @@ class TarifaUnica extends Command
 
             $this->line('Eventos activos encontrados: ' . $eventos->count());
 
-            $tickets = TicketEventoDescuento::whereIn('evento_id', $eventos)->where('finalizo_descuento', 0)->get();
+            $tickets = TicketEventoDescuento::whereIn('evento_id', $eventos)->where('finalizo_descuento', 0)->orderBy('fecha_hora_exoneracion')->get();
             $this->line('Tickets encontrados: ' . $tickets->count());
         } catch (\Throwable $e) {
             \Log::info($e);
