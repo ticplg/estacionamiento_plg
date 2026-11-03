@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Request;
 use App\Models\Configuracion;
 use App\Models\PuntoVenta;
@@ -675,20 +676,41 @@ class ParkingTottem extends Controller
 
     public function totem_gracias(Request $request)
     {
-        $this->pagar_estacionamiento($request->monto, $request->identificador, 'PYG');
-        $factura = new HistorialFactura;
-        
-        if($request->email == 0)
+        $transaccion_qr = $request->transaccion_qr_id != 0 ? QRTransaction::find($request->transaccion_qr_id) : null;
+
+        if ($transaccion_qr && $transaccion_qr->salida_ejecutada == 1)
         {
-            $factura->documento = '44444401-7';
-            $factura->razon_social = 'Cliente Ocasional';
+            // En QR el webhook de Bancard ya hizo el BookPayment y creó la factura (como Cliente Ocasional).
+            // Repetir el BookPayment da 500 en Skidata porque el ticket ya está pago.
+            $factura_webhook = HistorialFactura::where('transaccion_qr_id', $transaccion_qr->id)
+                ->where('identificador', $transaccion_qr->identificador)
+                ->first();
+
+            if ($factura_webhook)
+            {
+                // Si ya se emitió no se modifica
+                if (!$factura_webhook->numero_factura)
+                {
+                    $this->datos_cliente_factura($factura_webhook, $request->email);
+
+                    if (filled($request->equipo)) {
+                        $factura_webhook->punto_venta = $request->equipo;
+                    }
+
+                    $factura_webhook->save();
+                }
+
+                return view('totems.gracias');
+            }
+            // Si el webhook no llegó a crear la factura, se crea abajo como antes, sin repetir el pago
         }
         else
         {
-            $cliente = RucActivo::find($request->email);
-            $factura->documento = $cliente->ruc;
-            $factura->razon_social = $cliente->nombre;
+            $this->pagar_estacionamiento($request->monto, $request->identificador, 'PYG');
         }
+
+        $factura = new HistorialFactura;
+        $this->datos_cliente_factura($factura, $request->email);
 
         if($request->transaccion_tarjeta_id != 0)
         {
@@ -714,6 +736,23 @@ class ParkingTottem extends Controller
         $factura->save();
 
         return view('totems.gracias');
+    }
+
+    // $email es el id de RucActivo elegido en el tótem; 0 = Cliente Ocasional
+    private function datos_cliente_factura(HistorialFactura $factura, $email)
+    {
+        $cliente = $email != 0 ? RucActivo::find($email) : null;
+
+        if ($cliente)
+        {
+            $factura->documento = $cliente->ruc;
+            $factura->razon_social = $cliente->nombre;
+        }
+        else
+        {
+            $factura->documento = '44444401-7';
+            $factura->razon_social = 'Cliente Ocasional';
+        }
     }
 
     public function validar_ticket_pago_cero(Request $request)
