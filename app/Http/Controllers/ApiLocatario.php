@@ -135,6 +135,7 @@ class ApiLocatario extends Controller
             'qr' => 'required|string',
             'nombre' => 'nullable|string|max:255',
             'apellido' => 'nullable|string|max:255',
+            'nro_documento' => 'nullable|string|max:30',
             'nro_factura' => 'nullable|string|max:255',
         ], [
             'qr.required' => 'El código QR es obligatorio.',
@@ -201,6 +202,7 @@ class ApiLocatario extends Controller
                 'codigo_descuento' => $usuario->codigo_descuento,
                 'nombre' => $request->nombre,
                 'apellido' => $request->apellido,
+                'nro_documento' => $request->nro_documento,
                 'nro_factura' => $request->nro_factura,
                 'monto_ticket' => $monto_ticket,
                 'monto_descuento' => $monto_final !== null ? $monto_ticket - $monto_final : null,
@@ -284,6 +286,7 @@ class ApiLocatario extends Controller
                     'identificador' => $registro->identificador,
                     'nombre' => $registro->nombre,
                     'apellido' => $registro->apellido,
+                    'nro_documento' => $registro->nro_documento,
                     'nro_factura' => $registro->nro_factura,
                     'monto_ticket' => $registro->monto_ticket,
                     'monto_descuento' => $registro->monto_descuento,

@@ -35,6 +35,7 @@ class RegistroDescuentoLocatarioCrudController extends CrudController
         CRUD::column('codigo_descuento')->type('text')->label('Código');
         CRUD::column('nombre')->type('text');
         CRUD::column('apellido')->type('text');
+        CRUD::column('nro_documento')->type('text')->label('Nro. documento');
         CRUD::column('nro_factura')->type('text')->label('Nro. factura');
         CRUD::column('monto_ticket')->type('number')->label('Monto ticket')->thousands_sep('.');
         CRUD::column('monto_descuento')->type('number')->label('Descuento')->thousands_sep('.');
