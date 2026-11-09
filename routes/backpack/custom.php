@@ -40,6 +40,7 @@ Route::group([
     Route::crud('evento-especial', 'EventoEspecialCrudController');
     Route::crud('cajero-skydata', 'CajeroSkydataCrudController');
     Route::crud('factura-cajero-skydata', 'FacturaCajeroSkydataCrudController');
+    Route::crud('skydata-ruc-correo', 'SkydataRucCorreoCrudController');
     Route::crud('ticket-porteria', 'TicketPorteriaCrudController');
     Route::crud('ticket-hotel', 'TicketHotelCrudController');
     Route::crud('usuario-locatario', 'UsuarioLocatarioCrudController');

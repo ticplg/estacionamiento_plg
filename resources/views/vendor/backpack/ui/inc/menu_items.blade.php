@@ -1,6 +1,8 @@
 {{-- This file is used for menu items by any Backpack v6 theme --}}
 
-@if(backpack_user()->email != 'antoniag@paseolagaleria.com.py')
+@if(backpack_user()->hasRole(\App\Http\Middleware\RestringirOperadorRucSkydata::ROL))
+    <x-backpack::menu-item title="RUC y correos Skydata" icon="la la-envelope" :link="backpack_url('skydata-ruc-correo')" />
+@elseif(backpack_user()->email != 'antoniag@paseolagaleria.com.py')
     <li class="nav-item"><a class="nav-link" href="{{ backpack_url('dashboard') }}"><i class="la la-home nav-icon"></i> {{ trans('backpack::base.dashboard') }}</a></li>
     {{--@includeWhen(class_exists(\Backpack\DevTools\DevToolsServiceProvider::class), 'backpack.devtools::buttons.sidebar_item')--}}
 
@@ -36,6 +38,7 @@
         <x-backpack::menu-dropdown-item title="Punto Venta" icon="la la-dollar" :link="backpack_url('punto-venta')" />
         <x-backpack::menu-dropdown-item title="Codigos Descuento" icon="la la-question" :link="backpack_url('descuento-estacionamiento')" />
         <x-backpack::menu-dropdown-item title="Cajeros Skydata" icon="la la-question" :link="backpack_url('cajero-skydata')" />
+        <x-backpack::menu-dropdown-item title="RUC y correos Skydata" icon="la la-envelope" :link="backpack_url('skydata-ruc-correo')" />
     </x-backpack::menu-dropdown>
 @endif
 
@@ -43,7 +46,9 @@
 
 {{--<x-backpack::menu-item title="Estacionamiento" icon="la la-cab" :link="backpack_url('espacio-estacionamiento')" />
 <x-backpack::menu-item title="Marcaciones" icon="la la-history" :link="backpack_url('historial-marcacion')" />--}}
+@unless(backpack_user()->hasRole(\App\Http\Middleware\RestringirOperadorRucSkydata::ROL))
 <x-backpack::menu-item title="Reporte" icon="la la-print" :link="backpack_url('reporte-registro-estacionamiento/create')" />
+@endunless
 
 {{--
 <x-backpack::menu-item title="Ticket porterias" icon="la la-question" :link="backpack_url('ticket-porteria')" />
