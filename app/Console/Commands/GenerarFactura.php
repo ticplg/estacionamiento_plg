@@ -144,6 +144,10 @@ class GenerarFactura extends Command
 
 
         $factura_enviar = HistorialFactura::whereNull('numero_factura')
+            ->when(!$facturaId, function ($query) {
+                // Solo facturas de los últimos 3 días, para no emitir con fecha muy vieja
+                $query->where('created_at', '>=', Carbon::now()->subDays(3)->startOfDay());
+            })
             ->when($facturaId, $soloFactura)
             ->orderBy('id', 'asc')
             ->take(50)
