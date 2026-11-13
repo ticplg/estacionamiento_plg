@@ -44,4 +44,11 @@ return [
         'password' => env('CONSULTA_RUC_PASSWORD'),
     ],
 
+    // Backup de consulta_ruc (Sifen vía futura100)
+    'futura100' => [
+        'url' => env('FUTURA100_API_URL', 'https://ws-integracion.futura100.com.py/api'),
+        'ruc' => env('FUTURA100_RUC'),
+        'password' => env('FUTURA100_PASSWORD'),
+    ],
+
 ];
